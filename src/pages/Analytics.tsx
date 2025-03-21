@@ -13,11 +13,11 @@ import { Wallet, TrendingUp, TrendingDown, BarChart4, PieChart as PieChartIcon, 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Format currency
+// Format currency in INR
 const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: "USD",
+    currency: "INR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
@@ -504,31 +504,37 @@ const AnalyticsPage = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {topCategories.map((category, index) => (
-                    <div key={category.name} className="flex items-center">
-                      <div
-                        className="w-2 h-full min-h-[40px] mr-3"
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      />
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center mb-1">
-                          <h4 className="font-medium">{category.name}</h4>
-                          <span className="font-medium">
-                            {formatCurrency(category.value)}
-                          </span>
-                        </div>
-                        <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                          <div
-                            className="h-2 rounded-full"
-                            style={{ 
-                              width: `${(category.value / topCategories[0].value) * 100}%`,
-                              backgroundColor: COLORS[index % COLORS.length] 
-                            }}
-                          />
+                  {topCategories.length > 0 ? (
+                    topCategories.map((category, index) => (
+                      <div key={category.name} className="flex items-center">
+                        <div
+                          className="w-2 h-full min-h-[40px] mr-3"
+                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        />
+                        <div className="flex-1">
+                          <div className="flex justify-between items-center mb-1">
+                            <h4 className="font-medium">{category.name}</h4>
+                            <span className="font-medium">
+                              {formatCurrency(category.value)}
+                            </span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                            <div
+                              className="h-2 rounded-full"
+                              style={{ 
+                                width: `${(category.value / topCategories[0].value) * 100}%`,
+                                backgroundColor: COLORS[index % COLORS.length] 
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      No spending data available
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </GlassmorphicCard>

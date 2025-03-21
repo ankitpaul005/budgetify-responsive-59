@@ -1,5 +1,4 @@
-
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import Layout from "@/components/Layout";
@@ -10,15 +9,15 @@ import { AreaChart, LineChart, PieChart, ResponsiveContainer, XAxis, YAxis, Cart
 import { format, parseISO, differenceInMonths, differenceInDays } from "date-fns";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { Investment } from "@/utils/mockData";
-import { TrendingUp, TrendingDown, DollarSign, Percent, Calendar, BarChart4 } from "lucide-react";
+import { TrendingUp, TrendingDown, Percent, Calendar, AlertTriangle, Info } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
-// Format currency
+// Format currency in INR
 const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: "USD",
+    currency: "INR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
@@ -40,6 +39,82 @@ const InvestmentPage = () => {
     `budgetify-investments-${user?.id || "demo"}`,
     []
   );
+  
+  // Get investment suggestions based on user balance
+  const getInvestmentSuggestions = () => {
+    if (!user?.totalIncome) return [];
+    
+    const monthlyIncome = user.totalIncome / 12;
+    const suggestions = [];
+    
+    // Conservative investment (for lower income)
+    if (monthlyIncome < 50000) {
+      suggestions.push({
+        type: "Fixed Deposit",
+        description: "Safe investment with guaranteed returns",
+        expectedReturn: "5-7%",
+        risk: "Low",
+        minAmount: formatCurrency(5000)
+      });
+      suggestions.push({
+        type: "Recurring Deposit",
+        description: "Regular monthly investments",
+        expectedReturn: "4-6%",
+        risk: "Low",
+        minAmount: formatCurrency(1000)
+      });
+    }
+    
+    // Moderate investments (for medium income)
+    if (monthlyIncome >= 50000 && monthlyIncome < 100000) {
+      suggestions.push({
+        type: "Index Funds",
+        description: "Passive investment tracking market indices",
+        expectedReturn: "10-12%",
+        risk: "Medium",
+        minAmount: formatCurrency(10000)
+      });
+      suggestions.push({
+        type: "Government Bonds",
+        description: "Safe government-backed securities",
+        expectedReturn: "7-8%",
+        risk: "Low",
+        minAmount: formatCurrency(10000)
+      });
+    }
+    
+    // Aggressive investments (for higher income)
+    if (monthlyIncome >= 100000) {
+      suggestions.push({
+        type: "Equity Mutual Funds",
+        description: "Actively managed stock portfolios",
+        expectedReturn: "12-15%",
+        risk: "Medium-High",
+        minAmount: formatCurrency(10000)
+      });
+      suggestions.push({
+        type: "Real Estate Investment",
+        description: "Property investment for long-term growth",
+        expectedReturn: "8-12%",
+        risk: "Medium",
+        minAmount: formatCurrency(500000)
+      });
+    }
+    
+    // Suggestions for all income levels
+    suggestions.push({
+      type: "Emergency Fund",
+      description: "3-6 months of expenses in high-liquidity investments",
+      expectedReturn: "4-5%",
+      risk: "Very Low",
+      minAmount: formatCurrency(monthlyIncome * 3)
+    });
+    
+    return suggestions;
+  };
+  
+  // Get investment suggestions
+  const investmentSuggestions = getInvestmentSuggestions();
   
   // Redirect if not authenticated
   useEffect(() => {
@@ -82,11 +157,20 @@ const InvestmentPage = () => {
     // Starting with current total value
     let currentValue = totalValue;
     
+    // If no investments, start with a default value based on user income
+    if (totalValue === 0 && user?.totalIncome) {
+      currentValue = user.totalIncome * 0.1; // 10% of annual income as starting investment
+    }
+    
     // Average annual return rate (weighted by investment value)
-    const weightedReturnRate = investments.reduce(
-      (sum, inv) => sum + (inv.returnRate * inv.value) / totalValue, 
-      0
-    );
+    let weightedReturnRate = 10; // Default 10% if no investments
+    
+    if (totalValue > 0) {
+      weightedReturnRate = investments.reduce(
+        (sum, inv) => sum + (inv.returnRate * inv.value) / totalValue, 
+        0
+      );
+    }
     
     // Monthly growth rate
     const monthlyRate = weightedReturnRate / 12 / 100;
@@ -137,7 +221,7 @@ const InvestmentPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <GlassmorphicCard className="relative overflow-hidden">
             <div className="absolute top-2 right-2 bg-budget-blue-light text-budget-blue rounded-full p-2">
-              <DollarSign className="w-5 h-5" />
+              <TrendingUp className="w-5 h-5" />
             </div>
             <h3 className="text-lg font-medium text-muted-foreground mb-2">
               Total Portfolio Value
@@ -185,6 +269,62 @@ const InvestmentPage = () => {
           </GlassmorphicCard>
         </div>
         
+        {/* Investment Suggestions */}
+        <div className="mb-8">
+          <GlassmorphicCard>
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Personalized Investment Suggestions</CardTitle>
+                  <CardDescription>
+                    Based on your income profile
+                  </CardDescription>
+                </div>
+                <Info className="text-budget-blue h-5 w-5" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {user?.totalIncome ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {investmentSuggestions.map((suggestion, index) => (
+                    <div key={index} className="border border-border rounded-lg p-4 hover:bg-muted/40 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-medium text-lg">{suggestion.type}</h3>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          suggestion.risk === 'Low' ? 'bg-budget-green-light text-budget-green' :
+                          suggestion.risk === 'Medium' ? 'bg-budget-yellow-light text-budget-yellow' :
+                          'bg-budget-red-light text-budget-red'
+                        }`}>
+                          {suggestion.risk} Risk
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">{suggestion.description}</p>
+                      <div className="flex justify-between text-sm">
+                        <span>Expected Return:</span>
+                        <span className="font-medium text-budget-green">{suggestion.expectedReturn}</span>
+                      </div>
+                      <div className="flex justify-between text-sm mb-3">
+                        <span>Min Investment:</span>
+                        <span className="font-medium">{suggestion.minAmount}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-8 px-4 text-center">
+                  <div>
+                    <AlertTriangle className="h-10 w-10 text-budget-yellow mx-auto mb-2" />
+                    <h3 className="text-lg font-medium mb-1">Income Information Required</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Please update your income information to receive personalized investment suggestions.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </GlassmorphicCard>
+        </div>
+        
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Charts */}
@@ -206,36 +346,48 @@ const InvestmentPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="h-[300px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={portfolioComposition}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            outerRadius={100}
-                            fill="#8884d8"
-                            dataKey="value"
-                            label={({ name, percent }) => 
-                              `${name}: ${(percent * 100).toFixed(0)}%`
-                            }
-                          >
-                            {portfolioComposition.map((entry, index) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={COLORS[index % COLORS.length]}
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            formatter={(value: number) => [
-                              formatCurrency(value),
-                              "Amount",
-                            ]}
-                          />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
+                      {investments.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={portfolioComposition}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              outerRadius={100}
+                              fill="#8884d8"
+                              dataKey="value"
+                              label={({ name, percent }) => 
+                                `${name}: ${(percent * 100).toFixed(0)}%`
+                              }
+                            >
+                              {portfolioComposition.map((entry, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={COLORS[index % COLORS.length]}
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              formatter={(value: number) => [
+                                formatCurrency(value),
+                                "Amount",
+                              ]}
+                            />
+                            <Legend />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-center">
+                          <div>
+                            <Info className="h-10 w-10 text-budget-blue mx-auto mb-2" />
+                            <h3 className="text-lg font-medium mb-1">No Investments Yet</h3>
+                            <p className="text-muted-foreground">
+                              Add investments to see your portfolio composition
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </GlassmorphicCard>

@@ -1,8 +1,9 @@
+
 import { useAuth } from "@/context/AuthContext";
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, User, Settings, Activity } from "lucide-react";
+import { Menu, X, User, Settings, Activity, Sun, Moon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,12 +11,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTheme } from "@/context/ThemeContext";
 
 const Navbar: React.FC = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
   // Handle scroll for styling
   useEffect(() => {
@@ -52,6 +55,23 @@ const Navbar: React.FC = () => {
       </svg>
       <span>Budgetify</span>
     </Link>
+  );
+
+  // Theme toggle component
+  const ThemeToggle = () => (
+    <Button 
+      variant="ghost" 
+      size="icon" 
+      onClick={toggleTheme}
+      className="rounded-full"
+      aria-label="Toggle theme"
+    >
+      {theme === 'dark' ? (
+        <Sun className="h-5 w-5" />
+      ) : (
+        <Moon className="h-5 w-5" />
+      )}
+    </Button>
   );
 
   // Profile menu for desktop
@@ -121,12 +141,14 @@ const Navbar: React.FC = () => {
                     </Link>
                   ))}
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <ThemeToggle />
                   <ProfileMenu />
                 </div>
               </>
             ) : (
               <div className="flex items-center space-x-4">
+                <ThemeToggle />
                 <Link to="/login">
                   <Button variant="ghost">Login</Button>
                 </Link>
@@ -138,17 +160,20 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <button
-            className="flex md:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Menu"
-          >
-            {mobileMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
+          <div className="flex md:hidden items-center space-x-2">
+            <ThemeToggle />
+            <button
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
+          </div>
         </nav>
 
         {/* Mobile Menu */}
@@ -157,6 +182,10 @@ const Navbar: React.FC = () => {
             <div className="flex flex-col space-y-4">
               {isAuthenticated ? (
                 <>
+                  <div className="p-3 mb-2 border-b border-border">
+                    <p className="font-medium">{user?.name}</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  </div>
                   {authenticatedNavItems.map((item) => (
                     <Link
                       key={item.path}
