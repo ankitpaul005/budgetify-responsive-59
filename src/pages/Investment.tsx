@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -8,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AreaChart, LineChart, PieChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Area, Line, Cell, Pie, Legend } from "recharts";
 import { format, parseISO, differenceInMonths, differenceInDays } from "date-fns";
 import useLocalStorage from "@/hooks/useLocalStorage";
-import { Investment } from "@/utils/mockData";
+import { Investment, getInvestmentSuggestions } from "@/utils/mockData";
 import { TrendingUp, TrendingDown, Percent, Calendar, AlertTriangle, Info } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -40,88 +41,17 @@ const InvestmentPage = () => {
     []
   );
   
-  // Get investment suggestions based on user balance
-  const getInvestmentSuggestions = () => {
-    if (!user?.totalIncome) return [];
-    
-    const monthlyIncome = user.totalIncome / 12;
-    const suggestions = [];
-    
-    // Conservative investment (for lower income)
-    if (monthlyIncome < 50000) {
-      suggestions.push({
-        type: "Fixed Deposit",
-        description: "Safe investment with guaranteed returns",
-        expectedReturn: "5-7%",
-        risk: "Low",
-        minAmount: formatCurrency(5000)
-      });
-      suggestions.push({
-        type: "Recurring Deposit",
-        description: "Regular monthly investments",
-        expectedReturn: "4-6%",
-        risk: "Low",
-        minAmount: formatCurrency(1000)
-      });
-    }
-    
-    // Moderate investments (for medium income)
-    if (monthlyIncome >= 50000 && monthlyIncome < 100000) {
-      suggestions.push({
-        type: "Index Funds",
-        description: "Passive investment tracking market indices",
-        expectedReturn: "10-12%",
-        risk: "Medium",
-        minAmount: formatCurrency(10000)
-      });
-      suggestions.push({
-        type: "Government Bonds",
-        description: "Safe government-backed securities",
-        expectedReturn: "7-8%",
-        risk: "Low",
-        minAmount: formatCurrency(10000)
-      });
-    }
-    
-    // Aggressive investments (for higher income)
-    if (monthlyIncome >= 100000) {
-      suggestions.push({
-        type: "Equity Mutual Funds",
-        description: "Actively managed stock portfolios",
-        expectedReturn: "12-15%",
-        risk: "Medium-High",
-        minAmount: formatCurrency(10000)
-      });
-      suggestions.push({
-        type: "Real Estate Investment",
-        description: "Property investment for long-term growth",
-        expectedReturn: "8-12%",
-        risk: "Medium",
-        minAmount: formatCurrency(500000)
-      });
-    }
-    
-    // Suggestions for all income levels
-    suggestions.push({
-      type: "Emergency Fund",
-      description: "3-6 months of expenses in high-liquidity investments",
-      expectedReturn: "4-5%",
-      risk: "Very Low",
-      minAmount: formatCurrency(monthlyIncome * 3)
-    });
-    
-    return suggestions;
-  };
-  
-  // Get investment suggestions
-  const investmentSuggestions = getInvestmentSuggestions();
-  
   // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
     }
   }, [isAuthenticated, navigate]);
+  
+  // Get investment suggestions based on user income
+  const investmentSuggestions = user?.totalIncome 
+    ? getInvestmentSuggestions(user.totalIncome / 12) 
+    : [];
   
   // Calculate total portfolio value
   const totalValue = investments.reduce((sum, inv) => sum + inv.value, 0);
@@ -291,8 +221,10 @@ const InvestmentPage = () => {
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-medium text-lg">{suggestion.type}</h3>
                         <span className={`text-xs px-2 py-1 rounded-full ${
+                          suggestion.risk === 'Very Low' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
                           suggestion.risk === 'Low' ? 'bg-budget-green-light text-budget-green' :
                           suggestion.risk === 'Medium' ? 'bg-budget-yellow-light text-budget-yellow' :
+                          suggestion.risk === 'Medium-High' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
                           'bg-budget-red-light text-budget-red'
                         }`}>
                           {suggestion.risk} Risk
@@ -403,46 +335,58 @@ const InvestmentPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="h-[300px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={
-                              investments.reduce<{ name: string; value: number }[]>((acc, inv) => {
-                                const existing = acc.findIndex(i => i.name === inv.type);
-                                if (existing >= 0) {
-                                  acc[existing].value += inv.value;
-                                } else {
-                                  acc.push({ name: inv.type, value: inv.value });
-                                }
-                                return acc;
-                              }, [])
-                            }
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            outerRadius={100}
-                            fill="#8884d8"
-                            dataKey="value"
-                            label={({ name, percent }) => 
-                              `${name}: ${(percent * 100).toFixed(0)}%`
-                            }
-                          >
-                            {portfolioComposition.map((entry, index) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={COLORS[index % COLORS.length]}
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            formatter={(value: number) => [
-                              formatCurrency(value),
-                              "Amount",
-                            ]}
-                          />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
+                      {investments.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={
+                                investments.reduce<{ name: string; value: number }[]>((acc, inv) => {
+                                  const existing = acc.findIndex(i => i.name === inv.type);
+                                  if (existing >= 0) {
+                                    acc[existing].value += inv.value;
+                                  } else {
+                                    acc.push({ name: inv.type, value: inv.value });
+                                  }
+                                  return acc;
+                                }, [])
+                              }
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              outerRadius={100}
+                              fill="#8884d8"
+                              dataKey="value"
+                              label={({ name, percent }) => 
+                                `${name}: ${(percent * 100).toFixed(0)}%`
+                              }
+                            >
+                              {portfolioComposition.map((entry, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={COLORS[index % COLORS.length]}
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              formatter={(value: number) => [
+                                formatCurrency(value),
+                                "Amount",
+                              ]}
+                            />
+                            <Legend />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-center">
+                          <div>
+                            <Info className="h-10 w-10 text-budget-blue mx-auto mb-2" />
+                            <h3 className="text-lg font-medium mb-1">No Investments Yet</h3>
+                            <p className="text-muted-foreground">
+                              Add investments to see your asset allocation
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </GlassmorphicCard>

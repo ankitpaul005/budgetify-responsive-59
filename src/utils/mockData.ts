@@ -35,6 +35,14 @@ export type Investment = {
   type: string;
 }
 
+export type InvestmentSuggestion = {
+  type: string;
+  description: string;
+  expectedReturn: string;
+  risk: "Very Low" | "Low" | "Medium" | "Medium-High" | "High";
+  minAmount: string;
+}
+
 // Mock Categories
 export const defaultCategories: Category[] = [
   {
@@ -93,127 +101,127 @@ export const defaultCategories: Category[] = [
   },
 ];
 
-// Function to generate a month of random transactions
-export const generateMockTransactions = (userId: string): Transaction[] => {
-  const transactions: Transaction[] = [];
-  const today = new Date();
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+// Function to generate investment suggestions based on user balance
+export const getInvestmentSuggestions = (monthlyIncome: number): InvestmentSuggestion[] => {
+  const suggestions: InvestmentSuggestion[] = [];
   
-  // Add income
-  transactions.push({
-    id: crypto.randomUUID(),
-    amount: 4200,
-    description: "Monthly Salary",
-    category: "cat-7",
-    type: "income",
-    date: new Date(today.getFullYear(), today.getMonth(), 5).toISOString(),
-  });
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
   
-  // Add some random expenses
-  const expenseDescriptions = [
-    "Rent payment",
-    "Grocery shopping",
-    "Gas station",
-    "Netflix subscription",
-    "Electricity bill",
-    "Water bill",
-    "Internet bill",
-    "Mobile phone bill",
-    "Restaurant dinner",
-    "Coffee shop",
-    "Movie tickets",
-    "Online shopping",
-    "Pharmacy",
-    "Gym membership",
-  ];
-  
-  const expenseCategories = ["cat-1", "cat-2", "cat-3", "cat-4", "cat-5", "cat-6"];
-  
-  // Generate 20-30 transactions for the month
-  const numTransactions = Math.floor(Math.random() * 10) + 20;
-  
-  for (let i = 0; i < numTransactions; i++) {
-    const date = new Date(
-      startOfMonth.getTime() + Math.random() * (today.getTime() - startOfMonth.getTime())
-    );
-    
-    const categoryIndex = Math.floor(Math.random() * expenseCategories.length);
-    const descIndex = Math.floor(Math.random() * expenseDescriptions.length);
-    
-    const amount = parseFloat((Math.random() * 200 + 10).toFixed(2));
-    
-    transactions.push({
-      id: crypto.randomUUID(),
-      amount: amount,
-      description: expenseDescriptions[descIndex],
-      category: expenseCategories[categoryIndex],
-      type: "expense",
-      date: date.toISOString(),
+  // Conservative investment (for lower income)
+  if (monthlyIncome < 50000) {
+    suggestions.push({
+      type: "Bank Fixed Deposit",
+      description: "Safe investment with guaranteed returns",
+      expectedReturn: "5-7%",
+      risk: "Low",
+      minAmount: formatCurrency(5000)
+    });
+    suggestions.push({
+      type: "Post Office Monthly Income Scheme",
+      description: "Government backed savings scheme",
+      expectedReturn: "6.7%",
+      risk: "Very Low",
+      minAmount: formatCurrency(1000)
+    });
+    suggestions.push({
+      type: "SBI Small Cap Fund SIP",
+      description: "Monthly investment in small cap mutual fund",
+      expectedReturn: "12-15%",
+      risk: "Medium-High",
+      minAmount: formatCurrency(500)
     });
   }
   
-  // Sort by date
-  return transactions.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-};
-
-// Function to generate mock investments
-export const generateMockInvestments = (userId: string): Investment[] => {
-  return [
-    {
-      id: "inv-1",
-      name: "Stock Portfolio",
-      value: 12500,
-      initialValue: 10000,
-      returnRate: 8.5,
-      startDate: new Date(new Date().setMonth(new Date().getMonth() - 6)).toISOString(),
-      type: "Stocks",
-    },
-    {
-      id: "inv-2",
-      name: "Retirement Fund",
-      value: 35000,
-      initialValue: 30000,
-      returnRate: 5.2,
-      startDate: new Date(new Date().setFullYear(new Date().getFullYear() - 2)).toISOString(),
-      type: "401k",
-    },
-    {
-      id: "inv-3",
-      name: "High-Yield Savings",
-      value: 7000,
-      initialValue: 6500,
-      returnRate: 2.8,
-      startDate: new Date(new Date().setMonth(new Date().getMonth() - 9)).toISOString(),
-      type: "Savings",
-    },
-    {
-      id: "inv-4",
-      name: "Tech ETF",
-      value: 4200,
-      initialValue: 4000,
-      returnRate: 12.3,
-      startDate: new Date(new Date().setMonth(new Date().getMonth() - 2)).toISOString(),
-      type: "ETF",
-    },
-  ];
-};
-
-// Default budget
-export const defaultBudget: Budget = {
-  id: "budget-1",
-  amount: 3000,
-  period: "monthly",
-  startDate: new Date().toISOString(),
-  categories: [
-    { categoryId: "cat-1", limit: 1500 },
-    { categoryId: "cat-2", limit: 500 },
-    { categoryId: "cat-3", limit: 250 },
-    { categoryId: "cat-4", limit: 200 },
-    { categoryId: "cat-5", limit: 300 },
-    { categoryId: "cat-6", limit: 180 },
-  ],
+  // Moderate investments (for medium income)
+  if (monthlyIncome >= 50000 && monthlyIncome < 100000) {
+    suggestions.push({
+      type: "Nifty 50 Index Fund",
+      description: "Passive investment tracking market indices",
+      expectedReturn: "10-12%",
+      risk: "Medium",
+      minAmount: formatCurrency(5000)
+    });
+    suggestions.push({
+      type: "Government Bonds",
+      description: "Safe government-backed securities",
+      expectedReturn: "7-8%",
+      risk: "Low",
+      minAmount: formatCurrency(10000)
+    });
+    suggestions.push({
+      type: "Parag Parikh Flexi Cap Fund SIP",
+      description: "Monthly investment in diversified equity fund",
+      expectedReturn: "12-14%",
+      risk: "Medium",
+      minAmount: formatCurrency(1000)
+    });
+    suggestions.push({
+      type: "Blue Chip Stocks",
+      description: "HDFC Bank, Reliance, TCS shares",
+      expectedReturn: "12-15%",
+      risk: "Medium",
+      minAmount: formatCurrency(10000)
+    });
+  }
+  
+  // Aggressive investments (for higher income)
+  if (monthlyIncome >= 100000) {
+    suggestions.push({
+      type: "Mirae Asset Emerging Bluechip Fund",
+      description: "Actively managed equity fund",
+      expectedReturn: "15-18%",
+      risk: "Medium-High",
+      minAmount: formatCurrency(2500)
+    });
+    suggestions.push({
+      type: "Real Estate Investment",
+      description: "Property investment for long-term growth",
+      expectedReturn: "8-12%",
+      risk: "Medium",
+      minAmount: formatCurrency(500000)
+    });
+    suggestions.push({
+      type: "Growth Stocks",
+      description: "InfoEdge, Dixon Tech, Bajaj Finance shares",
+      expectedReturn: "15-20%",
+      risk: "High",
+      minAmount: formatCurrency(25000)
+    });
+    suggestions.push({
+      type: "ICICI Prudential Technology Fund",
+      description: "Sectoral fund focused on technology stocks",
+      expectedReturn: "16-20%",
+      risk: "High",
+      minAmount: formatCurrency(5000)
+    });
+  }
+  
+  // Suggestions for all income levels
+  suggestions.push({
+    type: "Emergency Fund",
+    description: "3-6 months of expenses in high-liquidity investments",
+    expectedReturn: "4-5%",
+    risk: "Very Low",
+    minAmount: formatCurrency(monthlyIncome * 3)
+  });
+  
+  suggestions.push({
+    type: "Gold ETF SIP",
+    description: "Monthly investment in Gold ETF",
+    expectedReturn: "8-10%",
+    risk: "Medium",
+    minAmount: formatCurrency(1000)
+  });
+  
+  return suggestions;
 };
 
 // Function to initialize user data
@@ -228,7 +236,7 @@ export const initializeUserData = (userId: string) => {
   if (!existingTransactions) {
     localStorage.setItem(
       `budgetify-transactions-${userId}`,
-      JSON.stringify(generateMockTransactions(userId))
+      JSON.stringify([])
     );
   }
   
@@ -242,14 +250,22 @@ export const initializeUserData = (userId: string) => {
   if (!existingBudget) {
     localStorage.setItem(
       `budgetify-budget-${userId}`,
-      JSON.stringify(defaultBudget)
+      JSON.stringify({
+        id: "budget-1",
+        amount: 0,
+        period: "monthly",
+        startDate: new Date().toISOString(),
+        categories: defaultCategories
+          .filter(cat => cat.budget)
+          .map(cat => ({ categoryId: cat.id, limit: cat.budget || 0 }))
+      })
     );
   }
   
   if (!existingInvestments) {
     localStorage.setItem(
       `budgetify-investments-${userId}`,
-      JSON.stringify(generateMockInvestments(userId))
+      JSON.stringify([])
     );
   }
 };
