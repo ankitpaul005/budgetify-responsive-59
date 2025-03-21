@@ -1,9 +1,8 @@
-
 import { useAuth } from "@/context/AuthContext";
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, User, Settings, ActivityLog } from "lucide-react";
+import { Menu, X, User, Settings, Activity } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,7 +77,7 @@ const Navbar: React.FC = () => {
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link to="/activity" className="flex items-center cursor-pointer">
-            <ActivityLog className="mr-2 h-4 w-4" />
+            <Activity className="mr-2 h-4 w-4" />
             <span>Activity Log</span>
           </Link>
         </DropdownMenuItem>
@@ -182,7 +181,7 @@ const Navbar: React.FC = () => {
                     to="/activity"
                     className="py-2 text-foreground/80 hover:text-foreground transition-colors flex items-center"
                   >
-                    <ActivityLog className="w-4 h-4 mr-2" />
+                    <Activity className="w-4 h-4 mr-2" />
                     Activity Log
                   </Link>
                   <Button
