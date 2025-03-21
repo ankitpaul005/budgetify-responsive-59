@@ -1,7 +1,6 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 // Define user types
 export type User = {
@@ -58,8 +57,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     
     try {
-      // In a real app, this would be an API call
-      // For demo, we'll check local storage for this user
       const usersList = JSON.parse(localStorage.getItem("budgetify-users") || "[]");
       const foundUser = usersList.find(
         (u: any) => u.email === email && u.password === password
@@ -71,7 +68,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       
-      // Remove password before storing in state
       const { password: _, ...userWithoutPassword } = foundUser;
       
       setUser(userWithoutPassword);
@@ -94,18 +90,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     
     try {
-      // In a real app, this would be an API call
-      // For demo, we'll store in local storage
       const usersList = JSON.parse(localStorage.getItem("budgetify-users") || "[]");
       
-      // Check if user already exists
       if (usersList.some((u: any) => u.email === email)) {
         toast.error("User with this email already exists");
         setLoading(false);
         return false;
       }
       
-      // Create new user
       const newUser = {
         id: crypto.randomUUID(),
         name,
@@ -114,11 +106,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createdAt: new Date().toISOString(),
       };
       
-      // Add to users list
       usersList.push(newUser);
       localStorage.setItem("budgetify-users", JSON.stringify(usersList));
       
-      // Log in the user (without password in state)
       const { password: _, ...userWithoutPassword } = newUser;
       setUser(userWithoutPassword);
       localStorage.setItem("budgetify-user", JSON.stringify(userWithoutPassword));
