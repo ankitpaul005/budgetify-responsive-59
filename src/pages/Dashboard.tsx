@@ -10,14 +10,23 @@ import { BarChart, LineChart, PieChart, ResponsiveContainer, XAxis, YAxis, Carte
 import { format, subDays, parseISO } from "date-fns";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { Transaction, Category, Budget } from "@/utils/mockData";
-import { ArrowUpRight, ArrowDownRight, Wallet, CircleDollarSign, PiggyBank, CreditCard, Settings, Plus, Filter } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Wallet, CircleDollarSign, PiggyBank, CreditCard, Settings, Plus, Filter, Edit } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // Calculate summary data
-const calculateSummary = (transactions: Transaction[]) => {
+const calculateSummary = (transactions: Transaction[], userIncome: number = 0) => {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   
@@ -27,19 +36,15 @@ const calculateSummary = (transactions: Transaction[]) => {
   );
   
   // Calculate income and expenses
-  const income = currentMonthTransactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-    
   const expenses = currentMonthTransactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
     
-  const balance = income - expenses;
-  const savingsRate = income > 0 ? ((income - expenses) / income) * 100 : 0;
+  const balance = userIncome - expenses;
+  const savingsRate = userIncome > 0 ? ((userIncome - expenses) / userIncome) * 100 : 0;
   
   return {
-    income,
+    income: userIncome,
     expenses,
     balance,
     savingsRate,
@@ -48,15 +53,16 @@ const calculateSummary = (transactions: Transaction[]) => {
 
 // Format currency
 const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
+    currency: "INR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(amount);
 };
 
 const Dashboard = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, updateUserIncome } = useAuth();
   const navigate = useNavigate();
   const [transactions, setTransactions] = useLocalStorage<Transaction[]>(
     `budgetify-transactions-${user?.id || "demo"}`,
@@ -80,6 +86,9 @@ const Dashboard = () => {
     type: "expense",
   });
   
+  const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
+  const [newIncome, setNewIncome] = useState(user?.totalIncome?.toString() || "50000");
+  
   // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
@@ -88,7 +97,7 @@ const Dashboard = () => {
   }, [isAuthenticated, navigate]);
   
   // Calculate summary
-  const summary = calculateSummary(transactions);
+  const summary = calculateSummary(transactions, user?.totalIncome || 0);
   
   // Filter transactions by search term
   const filteredTransactions = transactions.filter((transaction) => {
@@ -108,6 +117,17 @@ const Dashboard = () => {
   const getCategoryColor = (categoryId: string) => {
     const category = categories.find((c) => c.id === categoryId);
     return category ? `text-${category.color}` : "text-gray-500";
+  };
+  
+  // Update user income
+  const handleUpdateIncome = () => {
+    const income = parseInt(newIncome);
+    if (isNaN(income) || income < 0) {
+      toast.error("Please enter a valid income amount");
+      return;
+    }
+    updateUserIncome(income);
+    setIncomeDialogOpen(false);
   };
   
   // Add new transaction
@@ -233,8 +253,45 @@ const Dashboard = () => {
           </GlassmorphicCard>
           
           <GlassmorphicCard className="relative overflow-hidden">
-            <div className="absolute top-2 right-2 bg-budget-blue-light text-budget-blue rounded-full p-2">
-              <CircleDollarSign className="w-5 h-5" />
+            <div className="absolute top-2 right-2 flex gap-2">
+              <Dialog open={incomeDialogOpen} onOpenChange={setIncomeDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="icon" variant="ghost" className="h-9 w-9 bg-budget-blue-light text-budget-blue rounded-full p-2">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Update Monthly Income</DialogTitle>
+                    <DialogDescription>
+                      Enter your new monthly income amount.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="income">Monthly Income (₹)</Label>
+                      <Input
+                        id="income"
+                        type="number"
+                        value={newIncome}
+                        onChange={(e) => setNewIncome(e.target.value)}
+                        placeholder="Enter your monthly income"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      onClick={handleUpdateIncome}
+                      className="bg-budget-blue hover:bg-budget-blue/90"
+                    >
+                      Save Changes
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <div className="bg-budget-blue-light text-budget-blue rounded-full p-2">
+                <CircleDollarSign className="w-5 h-5" />
+              </div>
             </div>
             <h3 className="text-lg font-medium text-muted-foreground mb-2">
               Total Income
@@ -244,7 +301,7 @@ const Dashboard = () => {
             </p>
             <div className="flex items-center text-sm text-muted-foreground">
               <ArrowUpRight className="w-4 h-4 text-budget-green mr-1" />
-              <span>This month</span>
+              <span>Monthly Income</span>
             </div>
           </GlassmorphicCard>
           
@@ -349,7 +406,7 @@ const Dashboard = () => {
                           <YAxis
                             tick={{ fontSize: 12 }}
                             tickFormatter={(value) =>
-                              value === 0 ? "0" : `$${value}`
+                              value === 0 ? "0" : `₹${value}`
                             }
                           />
                           <Tooltip
@@ -399,7 +456,7 @@ const Dashboard = () => {
                             type="number"
                             tick={{ fontSize: 12 }}
                             tickFormatter={(value) =>
-                              value === 0 ? "0" : `$${value}`
+                              value === 0 ? "0" : `₹${value}`
                             }
                           />
                           <YAxis
@@ -459,7 +516,7 @@ const Dashboard = () => {
                           <YAxis
                             tick={{ fontSize: 12 }}
                             tickFormatter={(value) =>
-                              value === 0 ? "0" : `$${value}`
+                              value === 0 ? "0" : `₹${value}`
                             }
                           />
                           <Tooltip
@@ -494,56 +551,32 @@ const Dashboard = () => {
               <CardHeader className="pb-2">
                 <CardTitle>Add Transaction</CardTitle>
                 <CardDescription>
-                  Record your income or expenses
+                  Record your expenses
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <Button
-                      variant={
-                        newTransaction.type === "expense" ? "default" : "outline"
-                      }
-                      className={
-                        newTransaction.type === "expense"
-                          ? "bg-budget-red hover:bg-budget-red/90"
-                          : ""
-                      }
-                      onClick={() =>
-                        setNewTransaction({ ...newTransaction, type: "expense" })
-                      }
+                      variant="default"
+                      className="bg-budget-red hover:bg-budget-red/90"
                     >
                       Expense
-                    </Button>
-                    <Button
-                      variant={
-                        newTransaction.type === "income" ? "default" : "outline"
-                      }
-                      className={
-                        newTransaction.type === "income"
-                          ? "bg-budget-green hover:bg-budget-green/90"
-                          : ""
-                      }
-                      onClick={() =>
-                        setNewTransaction({ ...newTransaction, type: "income" })
-                      }
-                    >
-                      Income
                     </Button>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="amount">Amount</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        $
+                        ₹
                       </span>
                       <Input
                         id="amount"
                         type="number"
-                        placeholder="0.00"
+                        placeholder="0"
                         className="pl-8 input-focus-ring"
                         min="0"
-                        step="0.01"
+                        step="1"
                         value={newTransaction.amount}
                         onChange={(e) =>
                           setNewTransaction({
@@ -584,11 +617,7 @@ const Dashboard = () => {
                     >
                       <option value="">Select a category</option>
                       {categories
-                        .filter((c) =>
-                          newTransaction.type === "income"
-                            ? !c.budget
-                            : c.budget
-                        )
+                        .filter((c) => c.budget)
                         .map((category) => (
                           <option key={category.id} value={category.id}>
                             {category.name}
@@ -620,7 +649,7 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <CardDescription>
-                  Your latest financial activity
+                  Your latest expenses
                 </CardDescription>
                 <div className="pt-2">
                   <Input
@@ -638,28 +667,14 @@ const Dashboard = () => {
                       No transactions found
                     </div>
                   ) : (
-                    filteredTransactions.slice(0, 10).map((transaction) => (
+                    filteredTransactions.filter(tx => tx.type === "expense").slice(0, 10).map((transaction) => (
                       <div
                         key={transaction.id}
                         className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/40 transition-colors"
                       >
                         <div className="flex items-center">
-                          <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              transaction.type === "income"
-                                ? "bg-budget-green-light"
-                                : "bg-budget-red-light"
-                            }`}
-                          >
-                            {transaction.type === "income" ? (
-                              <ArrowUpRight
-                                className="w-5 h-5 text-budget-green"
-                              />
-                            ) : (
-                              <ArrowDownRight
-                                className="w-5 h-5 text-budget-red"
-                              />
-                            )}
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-budget-red-light">
+                            <ArrowDownRight className="w-5 h-5 text-budget-red" />
                           </div>
                           <div className="ml-3">
                             <p className="font-medium">
@@ -674,15 +689,8 @@ const Dashboard = () => {
                             </p>
                           </div>
                         </div>
-                        <p
-                          className={`font-medium ${
-                            transaction.type === "income"
-                              ? "text-budget-green"
-                              : "text-budget-red"
-                          }`}
-                        >
-                          {transaction.type === "income" ? "+" : "-"}
-                          {formatCurrency(transaction.amount)}
+                        <p className="font-medium text-budget-red">
+                          -{formatCurrency(transaction.amount)}
                         </p>
                       </div>
                     ))

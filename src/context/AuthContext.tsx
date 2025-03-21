@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -8,6 +9,7 @@ export type User = {
   name: string;
   email: string;
   avatar?: string;
+  totalIncome?: number;
 };
 
 // Define auth context type
@@ -18,6 +20,7 @@ type AuthContextType = {
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
+  updateUserIncome: (income: number) => void;
 };
 
 // Create context with default values
@@ -28,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   signup: async () => false,
   logout: () => {},
   isAuthenticated: false,
+  updateUserIncome: () => {},
 });
 
 // Auth provider component
@@ -103,6 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name,
         email,
         password,
+        totalIncome: 50000, // Default income in INR
         createdAt: new Date().toISOString(),
       };
       
@@ -125,6 +130,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Update user income
+  const updateUserIncome = (income: number) => {
+    if (!user) return;
+
+    try {
+      // Update user in state
+      const updatedUser = { ...user, totalIncome: income };
+      setUser(updatedUser);
+      
+      // Update in local storage
+      localStorage.setItem("budgetify-user", JSON.stringify(updatedUser));
+      
+      // Update in users list
+      const usersList = JSON.parse(localStorage.getItem("budgetify-users") || "[]");
+      const updatedUsersList = usersList.map((u: any) => 
+        u.id === user.id ? { ...u, totalIncome: income } : u
+      );
+      localStorage.setItem("budgetify-users", JSON.stringify(updatedUsersList));
+      
+      toast.success("Income updated successfully!");
+    } catch (error) {
+      console.error("Error updating income:", error);
+      toast.error("Failed to update income");
+    }
+  };
+
   // Logout function
   const logout = () => {
     setUser(null);
@@ -142,6 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signup,
         logout,
         isAuthenticated: !!user,
+        updateUserIncome,
       }}
     >
       {children}

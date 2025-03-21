@@ -3,7 +3,14 @@ import { useAuth } from "@/context/AuthContext";
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User, Settings, ActivityLog } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar: React.FC = () => {
   const { isAuthenticated, user, logout } = useAuth();
@@ -48,6 +55,41 @@ const Navbar: React.FC = () => {
     </Link>
   );
 
+  // Profile menu for desktop
+  const ProfileMenu = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="rounded-full">
+          <User className="h-5 w-5" />
+          <span className="sr-only">Profile</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <div className="px-2 py-1.5">
+          <p className="text-sm font-medium">{user?.name}</p>
+          <p className="text-xs text-muted-foreground">{user?.email}</p>
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/settings" className="flex items-center cursor-pointer">
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/activity" className="flex items-center cursor-pointer">
+            <ActivityLog className="mr-2 h-4 w-4" />
+            <span>Activity Log</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={logout} className="cursor-pointer">
+          Logout
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 px-6 transition-all duration-300 ${
@@ -81,13 +123,7 @@ const Navbar: React.FC = () => {
                   ))}
                 </div>
                 <div className="flex items-center space-x-4">
-                  <Button
-                    onClick={logout}
-                    variant="outline"
-                    className="border-transparent hover:border-border"
-                  >
-                    Logout
-                  </Button>
+                  <ProfileMenu />
                 </div>
               </>
             ) : (
@@ -135,6 +171,20 @@ const Navbar: React.FC = () => {
                       {item.label}
                     </Link>
                   ))}
+                  <Link
+                    to="/settings"
+                    className="py-2 text-foreground/80 hover:text-foreground transition-colors flex items-center"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </Link>
+                  <Link
+                    to="/activity"
+                    className="py-2 text-foreground/80 hover:text-foreground transition-colors flex items-center"
+                  >
+                    <ActivityLog className="w-4 h-4 mr-2" />
+                    Activity Log
+                  </Link>
                   <Button
                     onClick={logout}
                     variant="outline"
