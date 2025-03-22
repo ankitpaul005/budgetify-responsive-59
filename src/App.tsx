@@ -15,6 +15,8 @@ import AnalyticsPage from "./pages/Analytics";
 import LoginPage from "./pages/Login";
 import SignUpPage from "./pages/SignUp";
 import NotFoundPage from "./pages/NotFound";
+import ChatbotDialog from "./components/chat/ChatbotDialog";
+import VoiceCommandListener from "./components/voice/VoiceCommandListener";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -34,6 +36,8 @@ function App() {
               <Route path="/signup" element={<SignUpPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
+            <ChatbotDialog />
+            <VoiceCommandListener />
             <Toaster position="top-right" richColors />
           </AuthProvider>
         </ThemeProvider>

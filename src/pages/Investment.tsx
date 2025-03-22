@@ -10,6 +10,7 @@ import { generateGrowthData } from "@/utils/investmentUtils";
 // Import refactored components
 import InvestmentSummaryCards from "@/components/investment/InvestmentSummaryCards";
 import InvestmentSuggestions from "@/components/investment/InvestmentSuggestions";
+import InvestmentRecommendations from "@/components/investment/InvestmentRecommendations";
 import PortfolioCharts from "@/components/investment/PortfolioCharts";
 import InvestmentList from "@/components/investment/InvestmentList";
 
@@ -66,6 +67,10 @@ const InvestmentPage = () => {
     user?.totalIncome
   );
 
+  // Calculate available funds (10% of user income if present, or estimated value)
+  const monthlyIncome = user?.totalIncome ? user.totalIncome / 12 : 0;
+  const availableFunds = monthlyIncome * 0.1; // 10% of monthly income for investment
+
   return (
     <Layout>
       <div className="max-w-7xl mx-auto">
@@ -77,7 +82,13 @@ const InvestmentPage = () => {
           totalGain={totalGain}
           totalReturnPercent={totalReturnPercent}
           investments={investments}
-          projectedValue={growthData[growthData.length - 1].value}
+          projectedValue={growthData[growthData.length - 1]?.value || 0}
+        />
+        
+        {/* Smart Investment Recommendations - New Component */}
+        <InvestmentRecommendations
+          availableFunds={availableFunds}
+          hasIncomeInfo={!!user?.totalIncome}
         />
         
         {/* Investment Suggestions */}
