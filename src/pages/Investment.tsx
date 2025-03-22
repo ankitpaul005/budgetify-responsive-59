@@ -73,7 +73,7 @@ const InvestmentPage = () => {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto text-left">
         <h1 className="text-3xl font-bold mb-6">Investments</h1>
         
         {/* Summary Cards */}

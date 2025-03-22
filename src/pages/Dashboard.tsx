@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -25,17 +24,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-// Calculate summary data
 const calculateSummary = (transactions: Transaction[], userIncome: number = 0) => {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   
-  // Filter current month transactions
   const currentMonthTransactions = transactions.filter(
     (t) => new Date(t.date) >= startOfMonth
   );
   
-  // Calculate income and expenses
   const expenses = currentMonthTransactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
@@ -51,7 +47,6 @@ const calculateSummary = (transactions: Transaction[], userIncome: number = 0) =
   };
 };
 
-// Format currency
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -77,8 +72,6 @@ const Dashboard = () => {
     { id: "", amount: 0, period: "monthly", startDate: "", categories: [] }
   );
   
-  const [searchTerm, setSearchTerm] = useState("");
-  const [timeframe, setTimeframe] = useState("month");
   const [newTransaction, setNewTransaction] = useState({
     amount: "",
     description: "",
@@ -89,37 +82,24 @@ const Dashboard = () => {
   const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
   const [newIncome, setNewIncome] = useState(user?.totalIncome?.toString() || "50000");
   
-  // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
     }
   }, [isAuthenticated, navigate]);
   
-  // Calculate summary
   const summary = calculateSummary(transactions, user?.totalIncome || 0);
   
-  // Filter transactions by search term
-  const filteredTransactions = transactions.filter((transaction) => {
-    return (
-      transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
-  
-  // Get category name by ID
   const getCategoryName = (categoryId: string) => {
     const category = categories.find((c) => c.id === categoryId);
     return category ? category.name : "Uncategorized";
   };
   
-  // Get category color by ID
   const getCategoryColor = (categoryId: string) => {
     const category = categories.find((c) => c.id === categoryId);
     return category ? `text-${category.color}` : "text-gray-500";
   };
   
-  // Update user income
   const handleUpdateIncome = () => {
     const income = parseInt(newIncome);
     if (isNaN(income) || income < 0) {
@@ -130,7 +110,6 @@ const Dashboard = () => {
     setIncomeDialogOpen(false);
   };
   
-  // Add new transaction
   const handleAddTransaction = () => {
     if (!newTransaction.amount || !newTransaction.description || !newTransaction.category) {
       toast.error("Please fill in all fields");
@@ -163,7 +142,6 @@ const Dashboard = () => {
     toast.success("Transaction added successfully");
   };
   
-  // Prepare data for expense by category chart
   const expenseByCategory = categories.map((category) => {
     const total = transactions
       .filter((t) => t.category === category.id && t.type === "expense")
@@ -175,7 +153,6 @@ const Dashboard = () => {
     };
   }).filter((item) => item.value > 0);
   
-  // Colors for pie chart
   const COLORS = [
     "#0EA5E9",
     "#10B981",
@@ -187,7 +164,6 @@ const Dashboard = () => {
     "#14B8A6",
   ];
   
-  // Prepare data for spending over time chart
   const last30Days = Array.from({ length: 30 }, (_, i) => {
     const date = subDays(new Date(), 29 - i);
     const dayTransactions = transactions.filter(
@@ -204,7 +180,6 @@ const Dashboard = () => {
     };
   });
   
-  // Budget vs actual data
   const budgetVsActual = categories.map((category) => {
     const budgetItem = budget.categories.find((b) => b.categoryId === category.id);
     const spent = transactions
@@ -225,12 +200,11 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto text-left">
         <h1 className="text-3xl font-bold mb-6">
           Welcome back, {user?.name || "User"}
         </h1>
         
-        {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <GlassmorphicCard className="relative overflow-hidden">
             <div className="absolute top-2 right-2 bg-budget-green-light text-budget-green rounded-full p-2">
@@ -322,9 +296,7 @@ const Dashboard = () => {
           </GlassmorphicCard>
         </div>
         
-        {/* Main Dashboard Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Charts */}
           <div className="lg:col-span-2 space-y-8">
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="mb-4">
@@ -545,7 +517,6 @@ const Dashboard = () => {
             </Tabs>
           </div>
           
-          {/* Right Column - Transactions */}
           <div className="space-y-8">
             <GlassmorphicCard>
               <CardHeader className="pb-2">
@@ -634,70 +605,6 @@ const Dashboard = () => {
                 </div>
               </CardContent>
             </GlassmorphicCard>
-            
-            <GlassmorphicCard>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <CardTitle>Recent Transactions</CardTitle>
-                  <div className="flex space-x-2">
-                    <Button variant="ghost" size="icon">
-                      <Filter className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <CardDescription>
-                  Your latest expenses
-                </CardDescription>
-                <div className="pt-2">
-                  <Input
-                    placeholder="Search transactions..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="input-focus-ring"
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-                  {filteredTransactions.length === 0 ? (
-                    <div className="text-center py-6 text-muted-foreground">
-                      No transactions found
-                    </div>
-                  ) : (
-                    filteredTransactions.filter(tx => tx.type === "expense").slice(0, 10).map((transaction) => (
-                      <div
-                        key={transaction.id}
-                        className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/40 transition-colors"
-                      >
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-budget-red-light">
-                            <ArrowDownRight className="w-5 h-5 text-budget-red" />
-                          </div>
-                          <div className="ml-3">
-                            <p className="font-medium">
-                              {transaction.description}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {format(
-                                new Date(transaction.date),
-                                "MMM d, yyyy"
-                              )}{" "}
-                              • {getCategoryName(transaction.category)}
-                            </p>
-                          </div>
-                        </div>
-                        <p className="font-medium text-budget-red">
-                          -{formatCurrency(transaction.amount)}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </GlassmorphicCard>
           </div>
         </div>
       </div>
@@ -706,3 +613,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

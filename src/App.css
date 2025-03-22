@@ -1,19 +1,25 @@
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
-  text-align: center;
+  text-align: left;
 }
 
+/* Performance optimizations */
 .logo {
   height: 6em;
   padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+  will-change: transform;
+  transition: filter 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -35,8 +41,25 @@
 
 .card {
   padding: 2em;
+  transform: translateZ(0);
 }
 
 .read-the-docs {
   color: #888;
+}
+
+/* Performance optimizations for smooth animations */
+.animate-fadeIn,
+.animate-slideUp,
+.animate-slideRight,
+.animate-pulse,
+.animate-shimmer {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Optimize rendering performance for charts */
+.recharts-wrapper {
+  transform: translateZ(0);
 }
