@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -80,7 +81,7 @@ const Dashboard = () => {
   });
   
   const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
-  const [newIncome, setNewIncome] = useState(user?.totalIncome?.toString() || "50000");
+  const [newIncome, setNewIncome] = useState(user?.totalIncome?.toString() || "");
   
   useEffect(() => {
     if (!isAuthenticated) {
@@ -142,6 +143,7 @@ const Dashboard = () => {
     toast.success("Transaction added successfully");
   };
   
+  // Create expense by category data only for categories that have transactions
   const expenseByCategory = categories.map((category) => {
     const total = transactions
       .filter((t) => t.category === category.id && t.type === "expense")
@@ -152,6 +154,26 @@ const Dashboard = () => {
       value: total,
     };
   }).filter((item) => item.value > 0);
+  
+  // Use monthly income to generate estimated category budgets for empty charts
+  const generateBudgetEstimates = () => {
+    if (!user?.totalIncome || expenseByCategory.length > 0) return expenseByCategory;
+    
+    // Only generate estimates if there are no actual expenses
+    return categories
+      .filter(cat => cat.budget)
+      .map(category => {
+        // Using category's budget percentage to calculate from total income
+        const estimatedBudget = (category.budget || 0) / 3000 * (user.totalIncome / 12);
+        return {
+          name: category.name,
+          value: 0, // No actual value, just for chart rendering
+          budget: Math.round(estimatedBudget)
+        };
+      });
+  };
+  
+  const chartData = expenseByCategory.length > 0 ? expenseByCategory : generateBudgetEstimates();
   
   const COLORS = [
     "#0EA5E9",
@@ -164,6 +186,7 @@ const Dashboard = () => {
     "#14B8A6",
   ];
   
+  // Generate daily spending data
   const last30Days = Array.from({ length: 30 }, (_, i) => {
     const date = subDays(new Date(), 29 - i);
     const dayTransactions = transactions.filter(
@@ -180,23 +203,37 @@ const Dashboard = () => {
     };
   });
   
-  const budgetVsActual = categories.map((category) => {
-    const budgetItem = budget.categories.find((b) => b.categoryId === category.id);
-    const spent = transactions
-      .filter(
-        (t) =>
-          t.category === category.id &&
-          t.type === "expense" &&
-          new Date(t.date) >= new Date(budget.startDate)
-      )
-      .reduce((sum, t) => sum + t.amount, 0);
+  // Generate budget vs actual data based on income if no transactions
+  const generateBudgetVsActual = () => {
+    const result = categories
+      .filter(cat => cat.budget)
+      .map((category) => {
+        const budgetItem = budget.categories.find((b) => b.categoryId === category.id);
+        const spent = transactions
+          .filter(
+            (t) =>
+              t.category === category.id &&
+              t.type === "expense" &&
+              new Date(t.date) >= new Date(budget.startDate)
+          )
+          .reduce((sum, t) => sum + t.amount, 0);
+        
+        // If no budget set but we have income, generate a reasonable budget
+        const estimatedBudget = user?.totalIncome 
+          ? ((category.budget || 0) / 3000) * (user.totalIncome / 12)
+          : 0;
+        
+        return {
+          name: category.name,
+          budget: budgetItem?.limit || estimatedBudget,
+          spent: spent,
+        };
+      });
     
-    return {
-      name: category.name,
-      budget: budgetItem?.limit || 0,
-      spent: spent,
-    };
-  }).filter((item) => item.budget > 0);
+    return result.filter(item => item.budget > 0 || item.spent > 0);
+  };
+  
+  const budgetVsActual = generateBudgetVsActual();
 
   return (
     <Layout>
@@ -214,7 +251,7 @@ const Dashboard = () => {
               Current Balance
             </h3>
             <p className="text-3xl font-bold mb-1">
-              {formatCurrency(summary.balance)}
+              {user?.totalIncome ? formatCurrency(summary.balance) : "₹0"}
             </p>
             <div className="flex items-center text-sm text-muted-foreground">
               {summary.balance > 0 ? (
@@ -271,7 +308,7 @@ const Dashboard = () => {
               Total Income
             </h3>
             <p className="text-3xl font-bold mb-1">
-              {formatCurrency(summary.income)}
+              {user?.totalIncome ? formatCurrency(user.totalIncome) : "₹0"}
             </p>
             <div className="flex items-center text-sm text-muted-foreground">
               <ArrowUpRight className="w-4 h-4 text-budget-green mr-1" />
@@ -287,7 +324,7 @@ const Dashboard = () => {
               Total Expenses
             </h3>
             <p className="text-3xl font-bold mb-1">
-              {formatCurrency(summary.expenses)}
+              {formatCurrency(summary.expenses || 0)}
             </p>
             <div className="flex items-center text-sm text-muted-foreground">
               <ArrowDownRight className="w-4 h-4 text-budget-red mr-1" />
@@ -318,7 +355,7 @@ const Dashboard = () => {
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
-                            data={expenseByCategory}
+                            data={chartData}
                             cx="50%"
                             cy="50%"
                             labelLine={false}
@@ -326,10 +363,10 @@ const Dashboard = () => {
                             fill="#8884d8"
                             dataKey="value"
                             label={({ name, percent }) => 
-                              `${name}: ${(percent * 100).toFixed(0)}%`
+                              percent > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : `${name}`
                             }
                           >
-                            {expenseByCategory.map((entry, index) => (
+                            {chartData.map((entry, index) => (
                               <Cell
                                 key={`cell-${index}`}
                                 fill={COLORS[index % COLORS.length]}
@@ -414,7 +451,7 @@ const Dashboard = () => {
                     <div className="h-[350px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart
-                          data={expenseByCategory}
+                          data={chartData}
                           layout="vertical"
                           margin={{
                             top: 5,
@@ -444,7 +481,7 @@ const Dashboard = () => {
                             ]}
                           />
                           <Bar dataKey="value" fill="#0EA5E9">
-                            {expenseByCategory.map((entry, index) => (
+                            {chartData.map((entry, index) => (
                               <Cell
                                 key={`cell-${index}`}
                                 fill={COLORS[index % COLORS.length]}
@@ -605,6 +642,55 @@ const Dashboard = () => {
                 </div>
               </CardContent>
             </GlassmorphicCard>
+            
+            {/* Recent Transactions */}
+            <GlassmorphicCard>
+              <CardHeader className="pb-2">
+                <CardTitle>Recent Transactions</CardTitle>
+                <CardDescription>
+                  Your latest financial activities
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {transactions.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-4">
+                      No transactions yet. Add your first one!
+                    </p>
+                  ) : (
+                    transactions.slice(0, 5).map((transaction) => (
+                      <div key={transaction.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            transaction.type === "expense" 
+                              ? "bg-budget-red-light text-budget-red" 
+                              : "bg-budget-green-light text-budget-green"
+                          }`}>
+                            {transaction.type === "expense" ? (
+                              <ArrowDownRight className="w-4 h-4" />
+                            ) : (
+                              <ArrowUpRight className="w-4 h-4" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium">{transaction.description}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {getCategoryName(transaction.category)} • {format(new Date(transaction.date), "MMM dd, yyyy")}
+                            </p>
+                          </div>
+                        </div>
+                        <p className={`font-medium tabular-nums ${
+                          transaction.type === "expense" ? "text-budget-red" : "text-budget-green"
+                        }`}>
+                          {transaction.type === "expense" ? "-" : "+"}
+                          {formatCurrency(transaction.amount)}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </GlassmorphicCard>
           </div>
         </div>
       </div>
@@ -613,4 +699,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
