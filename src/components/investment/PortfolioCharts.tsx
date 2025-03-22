@@ -1,6 +1,6 @@
 
 import React from "react";
-import { GlassmorphicCard } from "@/components/ui/GlassmorphicCard";
+import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AreaChart, PieChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Area, Cell, Pie, Legend } from "recharts";

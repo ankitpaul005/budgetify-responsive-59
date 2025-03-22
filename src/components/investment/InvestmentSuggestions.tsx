@@ -1,6 +1,6 @@
 
 import React from "react";
-import { GlassmorphicCard } from "@/components/ui/GlassmorphicCard";
+import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { AlertTriangle, Info } from "lucide-react";
 import { InvestmentSuggestion } from "@/utils/mockData";
