@@ -10,7 +10,7 @@ import { BarChart, LineChart, PieChart, ResponsiveContainer, XAxis, YAxis, Carte
 import { format, subDays, parseISO } from "date-fns";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { Transaction, Category, Budget } from "@/utils/mockData";
-import { ArrowUpRight, ArrowDownRight, Wallet, CircleDollarSign, PiggyBank, CreditCard, Settings, Plus, Filter, Edit } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Wallet, CircleDollarSign, PiggyBank, CreditCard, Settings, Plus, Filter, Edit, InfoIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -186,7 +186,7 @@ const Dashboard = () => {
     "#14B8A6",
   ];
   
-  // Generate daily spending data
+  // Generate daily spending data based on actual transactions
   const last30Days = Array.from({ length: 30 }, (_, i) => {
     const date = subDays(new Date(), 29 - i);
     const dayTransactions = transactions.filter(
@@ -250,15 +250,17 @@ const Dashboard = () => {
             <h3 className="text-lg font-medium text-muted-foreground mb-2">
               Current Balance
             </h3>
-            <p className="text-3xl font-bold mb-1">
-              {user?.totalIncome ? formatCurrency(summary.balance) : "₹0"}
-            </p>
+            {user?.totalIncome ? (
+              <p className="text-3xl font-bold mb-1">
+                {formatCurrency(summary.balance)}
+              </p>
+            ) : (
+              <div className="flex items-center py-2">
+                <InfoIcon className="w-4 h-4 text-muted-foreground mr-2" />
+                <p className="text-muted-foreground">Update your income to see balance</p>
+              </div>
+            )}
             <div className="flex items-center text-sm text-muted-foreground">
-              {summary.balance > 0 ? (
-                <ArrowUpRight className="w-4 h-4 text-budget-green mr-1" />
-              ) : (
-                <ArrowDownRight className="w-4 h-4 text-budget-red mr-1" />
-              )}
               <span>This month</span>
             </div>
           </GlassmorphicCard>
@@ -307,11 +309,17 @@ const Dashboard = () => {
             <h3 className="text-lg font-medium text-muted-foreground mb-2">
               Total Income
             </h3>
-            <p className="text-3xl font-bold mb-1">
-              {user?.totalIncome ? formatCurrency(user.totalIncome) : "₹0"}
-            </p>
+            {user?.totalIncome ? (
+              <p className="text-3xl font-bold mb-1">
+                {formatCurrency(user.totalIncome)}
+              </p>
+            ) : (
+              <div className="flex items-center py-2">
+                <InfoIcon className="w-4 h-4 text-muted-foreground mr-2" />
+                <p className="text-muted-foreground">Click edit to update income</p>
+              </div>
+            )}
             <div className="flex items-center text-sm text-muted-foreground">
-              <ArrowUpRight className="w-4 h-4 text-budget-green mr-1" />
               <span>Monthly Income</span>
             </div>
           </GlassmorphicCard>
@@ -323,11 +331,17 @@ const Dashboard = () => {
             <h3 className="text-lg font-medium text-muted-foreground mb-2">
               Total Expenses
             </h3>
-            <p className="text-3xl font-bold mb-1">
-              {formatCurrency(summary.expenses || 0)}
-            </p>
+            {transactions.length > 0 ? (
+              <p className="text-3xl font-bold mb-1">
+                {formatCurrency(summary.expenses)}
+              </p>
+            ) : (
+              <div className="flex items-center py-2">
+                <InfoIcon className="w-4 h-4 text-muted-foreground mr-2" />
+                <p className="text-muted-foreground">No expenses tracked yet</p>
+              </div>
+            )}
             <div className="flex items-center text-sm text-muted-foreground">
-              <ArrowDownRight className="w-4 h-4 text-budget-red mr-1" />
               <span>This month</span>
             </div>
           </GlassmorphicCard>

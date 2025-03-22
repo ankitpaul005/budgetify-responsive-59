@@ -85,7 +85,7 @@ const InvestmentPage = () => {
           projectedValue={growthData[growthData.length - 1]?.value || 0}
         />
         
-        {/* Smart Investment Recommendations - New Component */}
+        {/* Smart Investment Recommendations */}
         <InvestmentRecommendations
           availableFunds={availableFunds}
           hasIncomeInfo={!!user?.totalIncome}

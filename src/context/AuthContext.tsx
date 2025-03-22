@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { initializeUserData } from "@/utils/mockData";
 
 // Define user types
 export type User = {
@@ -46,7 +47,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        
+        // Initialize user data after setting user state
+        initializeUserData(parsedUser.id);
       } catch (error) {
         console.error("Failed to parse stored user:", error);
         localStorage.removeItem("budgetify-user");
@@ -77,6 +82,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userWithoutPassword);
       localStorage.setItem("budgetify-user", JSON.stringify(userWithoutPassword));
       
+      // Initialize user data after login
+      initializeUserData(userWithoutPassword.id);
+      
       toast.success("Login successful!");
       navigate("/dashboard");
       return true;
@@ -102,12 +110,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       
+      const newUserId = crypto.randomUUID();
       const newUser = {
-        id: crypto.randomUUID(),
+        id: newUserId,
         name,
         email,
         password,
-        totalIncome: 50000, // Default income in INR
         createdAt: new Date().toISOString(),
       };
       
@@ -117,6 +125,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { password: _, ...userWithoutPassword } = newUser;
       setUser(userWithoutPassword);
       localStorage.setItem("budgetify-user", JSON.stringify(userWithoutPassword));
+      
+      // Initialize user data after signup
+      initializeUserData(newUserId);
       
       toast.success("Account created successfully!");
       navigate("/dashboard");

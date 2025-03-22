@@ -62,4 +62,36 @@
 /* Optimize rendering performance for charts */
 .recharts-wrapper {
   transform: translateZ(0);
+  contain: content;
+}
+
+/* Add critical rendering path optimizations */
+* {
+  text-rendering: optimizeSpeed;
+}
+
+/* Smooth scrolling for entire site */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Optimize list rendering */
+ul, ol {
+  content-visibility: auto;
+}
+
+/* Reduce repaints for fixed elements */
+.fixed, .sticky {
+  will-change: transform;
+}
+
+/* Optimize grid layouts */
+.grid {
+  contain: layout style;
+}
+
+/* Optimize image loading */
+img {
+  content-visibility: auto;
+  contain: content;
 }

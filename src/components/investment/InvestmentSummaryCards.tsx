@@ -1,7 +1,7 @@
 
 import React from "react";
 import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
-import { TrendingUp, Percent } from "lucide-react";
+import { TrendingUp, Percent, Info } from "lucide-react";
 import { formatCurrency, formatPercent } from "@/utils/formatting";
 
 interface InvestmentSummaryCardsProps {
@@ -28,7 +28,14 @@ const InvestmentSummaryCards: React.FC<InvestmentSummaryCardsProps> = ({
         <h3 className="text-lg font-medium text-muted-foreground mb-2">
           Total Portfolio Value
         </h3>
-        <p className="text-3xl font-bold mb-1">{formatCurrency(totalValue)}</p>
+        {investments.length > 0 ? (
+          <p className="text-3xl font-bold mb-1">{formatCurrency(totalValue)}</p>
+        ) : (
+          <div className="flex items-center py-2">
+            <Info className="w-4 h-4 text-muted-foreground mr-2" />
+            <p className="text-muted-foreground">No investments yet</p>
+          </div>
+        )}
         <div className="flex items-center text-sm text-muted-foreground">
           <span>Across {investments.length} investments</span>
         </div>
@@ -41,17 +48,30 @@ const InvestmentSummaryCards: React.FC<InvestmentSummaryCardsProps> = ({
         <h3 className="text-lg font-medium text-muted-foreground mb-2">
           Total Gain/Loss
         </h3>
-        <p className={`text-3xl font-bold mb-1 ${
-          totalGain >= 0 ? "text-budget-green" : "text-budget-red"
-        }`}>
-          {totalGain >= 0 ? "+" : ""}{formatCurrency(totalGain)}
-        </p>
+        {investments.length > 0 ? (
+          <p className={`text-3xl font-bold mb-1 ${
+            totalGain >= 0 ? "text-budget-green" : "text-budget-red"
+          }`}>
+            {totalGain >= 0 ? "+" : ""}{formatCurrency(totalGain)}
+          </p>
+        ) : (
+          <div className="flex items-center py-2">
+            <Info className="w-4 h-4 text-muted-foreground mr-2" />
+            <p className="text-muted-foreground">Add investments to track gains</p>
+          </div>
+        )}
         <div className="flex items-center text-sm">
-          <span className={totalReturnPercent >= 0 ? "text-budget-green" : "text-budget-red"}>
-            {totalReturnPercent >= 0 ? "+" : ""}
-            {formatPercent(totalReturnPercent)}
-          </span>
-          <span className="text-muted-foreground ml-1">Total return</span>
+          {investments.length > 0 ? (
+            <>
+              <span className={totalReturnPercent >= 0 ? "text-budget-green" : "text-budget-red"}>
+                {totalReturnPercent >= 0 ? "+" : ""}
+                {formatPercent(totalReturnPercent)}
+              </span>
+              <span className="text-muted-foreground ml-1">Total return</span>
+            </>
+          ) : (
+            <span className="text-muted-foreground">Track your investment performance</span>
+          )}
         </div>
       </GlassmorphicCard>
       
@@ -62,9 +82,16 @@ const InvestmentSummaryCards: React.FC<InvestmentSummaryCardsProps> = ({
         <h3 className="text-lg font-medium text-muted-foreground mb-2">
           Projected Growth
         </h3>
-        <p className="text-3xl font-bold mb-1">
-          {formatCurrency(projectedValue)}
-        </p>
+        {projectedValue > 0 ? (
+          <p className="text-3xl font-bold mb-1">
+            {formatCurrency(projectedValue)}
+          </p>
+        ) : (
+          <div className="flex items-center py-2">
+            <Info className="w-4 h-4 text-muted-foreground mr-2" />
+            <p className="text-muted-foreground">Update income to see projections</p>
+          </div>
+        )}
         <div className="flex items-center text-sm text-muted-foreground">
           <span>Estimated value in 2 years</span>
         </div>
