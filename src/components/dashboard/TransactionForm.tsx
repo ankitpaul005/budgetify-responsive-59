@@ -1,11 +1,12 @@
 
-import React from "react";
+import React, { useState } from "react";
 import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Category } from "@/utils/mockData";
+import { toast } from "sonner";
 
 interface TransactionFormProps {
   newTransaction: {
@@ -30,22 +31,59 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   categories,
   handleAddTransaction,
 }) => {
+  const [transactionType, setTransactionType] = useState(newTransaction.type);
+
+  const handleTypeChange = (type: string) => {
+    setTransactionType(type);
+    setNewTransaction({
+      ...newTransaction,
+      type,
+    });
+  };
+
+  const handleSubmit = () => {
+    if (!newTransaction.amount || parseFloat(newTransaction.amount) <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    
+    if (!newTransaction.description) {
+      toast.error("Please enter a description");
+      return;
+    }
+    
+    if (!newTransaction.category) {
+      toast.error("Please select a category");
+      return;
+    }
+    
+    handleAddTransaction();
+  };
+
   return (
     <GlassmorphicCard>
       <CardHeader className="pb-2">
         <CardTitle>Add Transaction</CardTitle>
         <CardDescription>
-          Record your expenses
+          Record your finances
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <Button
-              variant="default"
-              className="bg-budget-red hover:bg-budget-red/90"
+              variant={transactionType === "expense" ? "default" : "outline"}
+              className={transactionType === "expense" ? "bg-budget-red hover:bg-budget-red/90" : ""}
+              onClick={() => handleTypeChange("expense")}
             >
               Expense
+            </Button>
+            <Button
+              variant={transactionType === "income" ? "default" : "outline"}
+              className={transactionType === "income" ? "bg-budget-green hover:bg-budget-green/90" : ""}
+              onClick={() => handleTypeChange("income")}
+            >
+              Income
             </Button>
           </div>
           <div className="space-y-2">
@@ -111,7 +149,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           </div>
           <Button
             className="w-full"
-            onClick={handleAddTransaction}
+            onClick={handleSubmit}
           >
             Add Transaction
           </Button>

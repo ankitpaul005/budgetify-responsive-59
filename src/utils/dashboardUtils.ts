@@ -10,7 +10,7 @@ export const calculateSummary = (transactions: Transaction[], userIncome: number
       income: userIncome || 0,
       expenses: 0,
       balance: userIncome || 0,
-      savingsRate: 100,
+      savingsRate: userIncome ? 100 : 0,
     };
   }
   
@@ -37,7 +37,7 @@ export const calculateSummary = (transactions: Transaction[], userIncome: number
     
   console.log("Additional income:", additionalIncome);
     
-  const totalIncome = (userIncome || 0) + additionalIncome;
+  const totalIncome = userIncome + additionalIncome;
   const balance = totalIncome - expenses;
   const savingsRate = totalIncome > 0 ? ((totalIncome - expenses) / totalIncome) * 100 : 0;
   

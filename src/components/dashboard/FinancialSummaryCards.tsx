@@ -32,7 +32,7 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
   hasTransactions,
 }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
       <GlassmorphicCard className="relative overflow-hidden">
         <div className="absolute top-2 right-2 bg-budget-green-light text-budget-green rounded-full p-2">
           <Wallet className="w-5 h-5" />
@@ -40,7 +40,7 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
         <h3 className="text-lg font-medium text-muted-foreground mb-2">
           Current Balance
         </h3>
-        {userIncome ? (
+        {userIncome !== undefined ? (
           <p className="text-3xl font-bold mb-1">
             {formatCurrency(balance)}
           </p>
@@ -63,7 +63,7 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
                 <Edit className="w-4 h-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Update Monthly Income</DialogTitle>
                 <DialogDescription>
@@ -99,7 +99,7 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
         <h3 className="text-lg font-medium text-muted-foreground mb-2">
           Total Income
         </h3>
-        {userIncome ? (
+        {userIncome !== undefined && userIncome > 0 ? (
           <p className="text-3xl font-bold mb-1">
             {formatCurrency(userIncome)}
           </p>

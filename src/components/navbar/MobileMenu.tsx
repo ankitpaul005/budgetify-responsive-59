@@ -1,10 +1,11 @@
 
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Settings, Activity } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { NavItem } from "./types";
+import { toast } from "sonner";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -14,6 +15,18 @@ interface MobileMenuProps {
 const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, navItems }) => {
   const { isAuthenticated, user, userProfile, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully");
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout. Please try again.");
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -54,7 +67,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, navItems }) => {
               Activity Log
             </Link>
             <Button
-              onClick={logout}
+              onClick={handleLogout}
               variant="outline"
               className="border-transparent hover:border-border"
             >

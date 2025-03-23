@@ -108,8 +108,14 @@ const Dashboard = () => {
       return;
     }
     
-    await updateUserIncome(income);
-    setIncomeDialogOpen(false);
+    try {
+      await updateUserIncome(income);
+      toast.success("Income updated successfully");
+      setIncomeDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating income:", error);
+      toast.error("Failed to update income");
+    }
   };
   
   const handleAddTransaction = async () => {
@@ -205,7 +211,7 @@ const Dashboard = () => {
           hasTransactions={transactions.length > 0}
         />
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
           <div className="lg:col-span-2 space-y-8">
             <DashboardCharts
               transactions={transactions}
