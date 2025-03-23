@@ -19,6 +19,7 @@ const Login = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
+      console.log("Login: User is authenticated, redirecting to dashboard");
       navigate("/dashboard");
     }
   }, [isAuthenticated, navigate]);
@@ -36,6 +37,8 @@ const Login = () => {
     try {
       console.log("Attempting login with:", email);
       const success = await login(email, password);
+      console.log("Login success:", success);
+      
       if (!success) {
         setIsSubmitting(false);
       }
@@ -48,9 +51,9 @@ const Login = () => {
 
   return (
     <Layout>
-      <div className="max-w-md mx-auto w-full mt-6 mb-12">
+      <div className="w-full max-w-md mx-auto px-4 sm:px-0 mt-6 mb-12">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Welcome back</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Welcome back</h1>
           <p className="text-muted-foreground">
             Sign in to continue to Budgetify
           </p>

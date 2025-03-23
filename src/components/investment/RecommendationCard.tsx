@@ -12,30 +12,32 @@ interface RecommendationCardProps {
 
 const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation }) => {
   return (
-    <div className="border border-border rounded-lg p-4 hover:bg-muted/40 transition-colors">
-      <div className="flex justify-between items-start mb-3">
-        <h3 className="font-medium text-lg">{recommendation.name}</h3>
+    <div className="border border-border rounded-lg p-3 sm:p-4 hover:bg-muted/40 transition-colors">
+      <div className="flex justify-between items-start mb-2 sm:mb-3">
+        <h3 className="font-medium text-base sm:text-lg">{recommendation.name}</h3>
         <div className="rounded-full bg-primary/10 text-primary text-xs px-2 py-1">
           {recommendation.percentage}%
         </div>
       </div>
       
-      <p className="text-sm text-muted-foreground mb-4">{recommendation.description}</p>
+      <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 line-clamp-2">
+        {recommendation.description}
+      </p>
       
-      <div className="space-y-2 mb-3">
-        <div className="flex justify-between text-sm">
+      <div className="space-y-1.5 sm:space-y-2 mb-3">
+        <div className="flex justify-between text-xs sm:text-sm">
           <span>Recommended Amount:</span>
           <span className="font-medium">{formatCurrency(recommendation.allocation)}</span>
         </div>
-        <div className="flex justify-between text-sm">
+        <div className="flex justify-between text-xs sm:text-sm">
           <span>Risk Level:</span>
           <span className="font-medium">{recommendation.riskLevel}</span>
         </div>
-        <div className="flex justify-between text-sm">
+        <div className="flex justify-between text-xs sm:text-sm">
           <span>Expected Return:</span>
           <span className="font-medium text-budget-green">{recommendation.returnRate}</span>
         </div>
-        <div className="flex justify-between text-sm">
+        <div className="flex justify-between text-xs sm:text-sm">
           <span>Suggested Instrument:</span>
           <span className="font-medium">{recommendation.instrument}</span>
         </div>
@@ -43,10 +45,10 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation 
       
       <Button 
         variant="ghost" 
-        className="w-full gap-2 mt-2"
+        className="w-full gap-2 mt-2 text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
         onClick={() => toast.info(`Investment in ${recommendation.name} coming soon!`)}
       >
-        Invest Now <ArrowRight className="h-4 w-4" />
+        Invest Now <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
       </Button>
     </div>
   );
