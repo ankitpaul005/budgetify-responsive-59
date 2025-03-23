@@ -40,6 +40,8 @@ const Dashboard = () => {
   
   // Fetch transactions when user logs in
   useEffect(() => {
+    console.log("Dashboard: Auth state:", isAuthenticated, user?.id);
+    
     if (!isAuthenticated) {
       navigate("/login");
       return;
@@ -52,6 +54,7 @@ const Dashboard = () => {
   
   // Update newIncome when userProfile changes
   useEffect(() => {
+    console.log("Dashboard: User profile updated:", userProfile);
     if (userProfile?.totalIncome) {
       setNewIncome(userProfile.totalIncome.toString());
     }
@@ -62,6 +65,8 @@ const Dashboard = () => {
     
     try {
       setIsLoading(true);
+      console.log("Fetching transactions for user:", user.id);
+      
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
@@ -71,6 +76,8 @@ const Dashboard = () => {
       if (error) {
         throw error;
       }
+      
+      console.log("Transactions fetched:", data);
       
       // Transform the data to match our Transaction type
       const formattedTransactions: Transaction[] = data.map((item: any) => ({
@@ -120,6 +127,7 @@ const Dashboard = () => {
     }
     
     try {
+      console.log("Adding transaction:", newTransaction);
       const transactionData = {
         user_id: user.id,
         amount: amount,
@@ -137,6 +145,8 @@ const Dashboard = () => {
       if (error) {
         throw error;
       }
+      
+      console.log("Transaction added:", data);
       
       // Add the new transaction to the state
       const newTrans: Transaction = {
