@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Settings, Activity } from "lucide-react";
+import { User, Settings, Activity, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -21,7 +21,6 @@ const ProfileMenu: React.FC = () => {
     try {
       await logout();
       toast.success("Logged out successfully");
-      navigate("/");
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Failed to logout. Please try again.");
@@ -55,8 +54,9 @@ const ProfileMenu: React.FC = () => {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-          Logout
+        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer flex items-center text-destructive">
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Logout</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

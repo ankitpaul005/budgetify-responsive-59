@@ -20,7 +20,7 @@ type AuthContextType = {
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
   updateUserIncome: (income: number) => Promise<void>;
   session: Session | null;
@@ -33,7 +33,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   login: async () => false,
   signup: async () => false,
-  logout: () => {},
+  logout: async () => {},
   isAuthenticated: false,
   updateUserIncome: async () => {},
   session: null,
@@ -49,6 +49,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Initialize auth state
   useEffect(() => {
+    console.log("Auth provider initializing...");
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -72,9 +74,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         fetchUserProfile(session.user.id);
+      } else {
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -92,6 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error("Error fetching user profile:", error);
+        setLoading(false);
         return;
       }
 
@@ -104,8 +107,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           totalIncome: Number(data.total_income) || 0,
         });
       }
+      setLoading(false);
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
+      setLoading(false);
     }
   };
 
@@ -121,18 +126,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         toast.error(error.message);
+        setLoading(false);
         return false;
       }
       
+      console.log("Login successful, user:", data.user);
       toast.success("Login successful!");
+      
+      if (data.user) {
+        await fetchUserProfile(data.user.id);
+      }
+      
       navigate("/dashboard");
       return true;
     } catch (error: any) {
       console.error("Login error:", error);
       toast.error(error.message || "An error occurred during login");
-      return false;
-    } finally {
       setLoading(false);
+      return false;
     }
   };
 
@@ -153,6 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         toast.error(error.message);
+        setLoading(false);
         return false;
       }
       
@@ -162,9 +174,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       console.error("Signup error:", error);
       toast.error(error.message || "An error occurred during signup");
-      return false;
-    } finally {
       setLoading(false);
+      return false;
     }
   };
 
@@ -199,10 +210,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await supabase.auth.signOut();
+      setUser(null);
+      setUserProfile(null);
+      setSession(null);
       toast.info("You have been logged out");
       navigate("/");
     } catch (error) {
       console.error("Logout error:", error);
+      throw error;
     }
   };
 
