@@ -12,7 +12,7 @@ interface MobileMenuProps {
 }
 
 const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, navItems }) => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, userProfile, logout } = useAuth();
   const location = useLocation();
 
   if (!isOpen) return null;
@@ -23,7 +23,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, navItems }) => {
         {isAuthenticated ? (
           <>
             <div className="p-3 mb-2 border-b border-border">
-              <p className="font-medium">{user?.name}</p>
+              <p className="font-medium">{userProfile?.name || user?.email}</p>
               <p className="text-xs text-muted-foreground">{user?.email}</p>
             </div>
             {navItems.map((item) => (

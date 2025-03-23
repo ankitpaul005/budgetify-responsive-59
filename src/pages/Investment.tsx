@@ -15,7 +15,7 @@ import PortfolioCharts from "@/components/investment/PortfolioCharts";
 import InvestmentList from "@/components/investment/InvestmentList";
 
 const InvestmentPage = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, userProfile } = useAuth();
   const navigate = useNavigate();
   const [investments] = useLocalStorage<Investment[]>(
     `budgetify-investments-${user?.id || "demo"}`,
@@ -30,8 +30,8 @@ const InvestmentPage = () => {
   }, [isAuthenticated, navigate]);
   
   // Get investment suggestions based on user income
-  const investmentSuggestions = user?.totalIncome 
-    ? getInvestmentSuggestions(user.totalIncome / 12) 
+  const investmentSuggestions = userProfile?.totalIncome 
+    ? getInvestmentSuggestions(userProfile.totalIncome / 12) 
     : [];
   
   // Calculate total portfolio value
@@ -64,11 +64,11 @@ const InvestmentPage = () => {
   const growthData = generateGrowthData(
     totalValue,
     investments,
-    user?.totalIncome
+    userProfile?.totalIncome
   );
 
   // Calculate available funds (10% of user income if present, or estimated value)
-  const monthlyIncome = user?.totalIncome ? user.totalIncome / 12 : 0;
+  const monthlyIncome = userProfile?.totalIncome ? userProfile.totalIncome / 12 : 0;
   const availableFunds = monthlyIncome * 0.1; // 10% of monthly income for investment
 
   return (
@@ -88,13 +88,13 @@ const InvestmentPage = () => {
         {/* Smart Investment Recommendations */}
         <InvestmentRecommendations
           availableFunds={availableFunds}
-          hasIncomeInfo={!!user?.totalIncome}
+          hasIncomeInfo={!!userProfile?.totalIncome}
         />
         
         {/* Investment Suggestions */}
         <InvestmentSuggestions
           investmentSuggestions={investmentSuggestions}
-          hasIncomeInfo={!!user?.totalIncome}
+          hasIncomeInfo={!!userProfile?.totalIncome}
         />
         
         {/* Main Content */}

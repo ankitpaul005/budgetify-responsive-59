@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const ProfileMenu: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, userProfile, logout } = useAuth();
 
   return (
     <DropdownMenu>
@@ -25,7 +25,7 @@ const ProfileMenu: React.FC = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <div className="px-2 py-1.5">
-          <p className="text-sm font-medium">{user?.name}</p>
+          <p className="text-sm font-medium">{userProfile?.name || user?.email}</p>
           <p className="text-xs text-muted-foreground">{user?.email}</p>
         </div>
         <DropdownMenuSeparator />
