@@ -121,7 +121,7 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
         <h3 className="text-lg font-medium text-muted-foreground mb-2">
           Total Expenses
         </h3>
-        {hasTransactions ? (
+        {expenses > 0 || hasTransactions ? (
           <p className="text-3xl font-bold mb-1">
             {formatCurrency(expenses)}
           </p>

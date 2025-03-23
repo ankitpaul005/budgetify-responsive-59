@@ -9,15 +9,22 @@ export const calculateSummary = (transactions: Transaction[], userIncome: number
     (t) => new Date(t.date) >= startOfMonth
   );
   
+  // Calculate total expenses
   const expenses = currentMonthTransactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
     
-  const balance = userIncome - expenses;
-  const savingsRate = userIncome > 0 ? ((userIncome - expenses) / userIncome) * 100 : 0;
+  // Calculate additional income from income transactions
+  const additionalIncome = currentMonthTransactions
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+    
+  const totalIncome = userIncome + additionalIncome;
+  const balance = totalIncome - expenses;
+  const savingsRate = totalIncome > 0 ? ((totalIncome - expenses) / totalIncome) * 100 : 0;
   
   return {
-    income: userIncome,
+    income: totalIncome,
     expenses,
     balance,
     savingsRate,
