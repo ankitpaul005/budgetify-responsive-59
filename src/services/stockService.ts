@@ -25,9 +25,19 @@ export interface SIPData {
   risk: string;
 }
 
+export interface StockHistoricalData {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+// Fetch real-time stock data
 export const fetchStockData = async (symbols: string[]): Promise<StockData[]> => {
   try {
-    // In a real implementation, this would call the Edge Function that connects to a Stock API
+    // Use Alpha Vantage API through our Edge Function
     const { data, error } = await supabase.functions.invoke("fetch-stock-data", {
       body: { symbols },
     });
@@ -41,7 +51,7 @@ export const fetchStockData = async (symbols: string[]): Promise<StockData[]> =>
   } catch (error) {
     console.error("Failed to fetch stock data:", error);
     
-    // Fallback to mock data for demo purposes
+    // Fallback to realistic mock data if API fails
     return symbols.map((symbol) => ({
       symbol,
       name: `${symbol} Corp`,
@@ -52,6 +62,67 @@ export const fetchStockData = async (symbols: string[]): Promise<StockData[]> =>
       marketCap: Math.floor(Math.random() * 1000000000000),
       lastUpdated: new Date().toISOString(),
     }));
+  }
+};
+
+// Fetch historical data for a specific stock
+export const fetchStockHistoricalData = async (symbol: string, timeframe: string = "1D"): Promise<StockHistoricalData[]> => {
+  try {
+    const { data, error } = await supabase.functions.invoke("fetch-stock-historical-data", {
+      body: { symbol, timeframe },
+    });
+
+    if (error) {
+      console.error("Error fetching historical stock data:", error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Failed to fetch historical stock data:", error);
+    
+    // Generate mock historical data if API fails
+    const today = new Date();
+    const mockData: StockHistoricalData[] = [];
+    
+    // Generate data points based on timeframe
+    const dataPoints = timeframe === "1D" ? 24 : 
+                     timeframe === "5D" ? 5 : 
+                     timeframe === "1M" ? 30 : 
+                     timeframe === "1Y" ? 365 : 60;
+    
+    const basePrice = 100 + Math.random() * 200;
+    let currentPrice = basePrice;
+    
+    for (let i = 0; i < dataPoints; i++) {
+      const date = new Date(today);
+      
+      if (timeframe === "1D") {
+        date.setHours(today.getHours() - (dataPoints - i));
+      } else if (timeframe === "5D" || timeframe === "1M") {
+        date.setDate(today.getDate() - (dataPoints - i));
+      } else {
+        date.setDate(today.getDate() - (dataPoints - i));
+      }
+      
+      // Simulate price movement
+      const priceChange = (Math.random() - 0.5) * 5;
+      currentPrice += priceChange;
+      
+      const dayHigh = currentPrice + Math.random() * 5;
+      const dayLow = currentPrice - Math.random() * 5;
+      
+      mockData.push({
+        date: date.toISOString(),
+        open: currentPrice - priceChange,
+        high: dayHigh,
+        low: dayLow,
+        close: currentPrice,
+        volume: Math.floor(Math.random() * 10000000)
+      });
+    }
+    
+    return mockData;
   }
 };
 

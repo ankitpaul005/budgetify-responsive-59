@@ -9,16 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatPercent } from "@/utils/formatting";
 import { toast } from "sonner";
+import StockDetailView from "./StockDetailView";
 
 const popularStocks = ["AAPL", "GOOGL", "MSFT", "AMZN", "META", "TSLA", "NFLX", "NVDA"];
 
 const LiveStockTracker: React.FC = () => {
   const [selectedStocks, setSelectedStocks] = useState(popularStocks.slice(0, 5));
+  const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
   
   const { data: stockData, isLoading, error, refetch } = useQuery({
     queryKey: ["stockData", selectedStocks],
     queryFn: () => fetchStockData(selectedStocks),
-    refetchInterval: 60000, // Refetch every minute
+    refetchInterval: 30000, // Refetch every 30 seconds for more live data
   });
   
   useEffect(() => {
@@ -33,6 +35,14 @@ const LiveStockTracker: React.FC = () => {
     refetch();
   };
 
+  const handleStockClick = (stock: StockData) => {
+    setSelectedStock(stock);
+  };
+
+  const handleBackToList = () => {
+    setSelectedStock(null);
+  };
+
   return (
     <GlassmorphicCard className="mb-8">
       <CardHeader className="pb-2">
@@ -40,26 +50,32 @@ const LiveStockTracker: React.FC = () => {
           <div>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-budget-blue" />
-              Live Stock Tracker
+              {selectedStock ? `${selectedStock.symbol} Stock Details` : "Live Stock Tracker"}
             </CardTitle>
             <CardDescription>
-              Real-time market data for popular stocks
+              {selectedStock 
+                ? `Real-time data and charts for ${selectedStock.name}`
+                : "Real-time market data for popular stocks"}
             </CardDescription>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={isLoading}
-            className="flex items-center gap-1"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
+          {!selectedStock && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="flex items-center gap-1"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {selectedStock ? (
+          <StockDetailView stock={selectedStock} onBack={handleBackToList} />
+        ) : isLoading ? (
           <div className="space-y-4">
             {Array.from({ length: 5 }).map((_, index) => (
               <div key={index} className="flex justify-between items-center p-3 border border-border rounded-lg">
@@ -79,7 +95,8 @@ const LiveStockTracker: React.FC = () => {
             {stockData.map((stock) => (
               <div 
                 key={stock.symbol}
-                className="flex justify-between items-center p-3 border border-border rounded-lg hover:bg-muted/40 transition-colors"
+                className="flex justify-between items-center p-3 border border-border rounded-lg hover:bg-muted/40 transition-colors cursor-pointer"
+                onClick={() => handleStockClick(stock)}
               >
                 <div>
                   <h3 className="font-medium">{stock.symbol}</h3>

@@ -13,6 +13,7 @@ import DashboardPage from "./pages/Dashboard";
 import InvestmentPage from "./pages/Investment";
 import AnalyticsPage from "./pages/Analytics";
 import ActivityPage from "./pages/Activity";
+import SettingsPage from "./pages/Settings";
 import LoginPage from "./pages/Login";
 import SignUpPage from "./pages/SignUp";
 import NotFoundPage from "./pages/NotFound";
@@ -36,6 +37,7 @@ function App() {
               <Route path="/investments" element={<InvestmentPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/activity" element={<ActivityPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignUpPage />} />
               <Route path="*" element={<NotFoundPage />} />
