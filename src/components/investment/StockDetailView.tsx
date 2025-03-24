@@ -240,7 +240,7 @@ const StockDetailView: React.FC<StockDetailViewProps> = ({ stock, onBack }) => {
                           <div className="bg-background border rounded shadow p-2 text-sm">
                             <p className="font-medium">{payload[0].payload.date}</p>
                             <p className="font-medium text-primary">
-                              {formatCurrency(payload[0].value)}
+                              {formatCurrency(Number(payload[0].value))}
                             </p>
                           </div>
                         );

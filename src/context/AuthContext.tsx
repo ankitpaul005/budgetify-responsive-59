@@ -22,8 +22,10 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  signOut: () => Promise<void>;
   isAuthenticated: boolean;
   updateUserIncome: (income: number) => Promise<void>;
+  updateProfile: (data: {name: string, totalIncome: number}) => Promise<void>;
   session: Session | null;
 };
 
@@ -35,8 +37,10 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => false,
   signup: async () => false,
   logout: async () => {},
+  signOut: async () => {},
   isAuthenticated: false,
   updateUserIncome: async () => {},
+  updateProfile: async () => {},
   session: null,
 });
 
@@ -172,6 +176,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Update user profile
+  const updateProfile = async (data: {name: string, totalIncome: number}) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ 
+          name: data.name,
+          total_income: data.totalIncome,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+      
+      if (error) {
+        toast.error("Failed to update profile: " + error.message);
+        return;
+      }
+      
+      // Log activity
+      await logActivity(user.id, ActivityTypes.PROFILE_UPDATE, "Updated profile");
+      
+      // Update local state
+      setUserProfile(prev => prev ? { 
+        ...prev, 
+        name: data.name,
+        totalIncome: data.totalIncome 
+      } : null);
+      
+      toast.success("Profile updated successfully!");
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
+      toast.error("Failed to update profile: " + error.message);
+    }
+  };
+
   // Update user income
   const updateUserIncome = async (income: number) => {
     if (!user) return;
@@ -223,6 +263,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Add signOut as an alias for logout for consistency
+  const signOut = logout;
+
   return (
     <AuthContext.Provider
       value={{
@@ -232,8 +275,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         signup,
         logout,
+        signOut,
         isAuthenticated: !!user,
         updateUserIncome,
+        updateProfile,
         session,
       }}
     >
