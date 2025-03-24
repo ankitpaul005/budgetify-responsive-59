@@ -1,201 +1,142 @@
 
-import React from "react";
-import { v4 as uuidv4 } from "uuid";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
+import { v4 as uuidv4 } from "@/node_modules/uuid"; // Updated import path
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Category } from "@/utils/mockData";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { toast } from "sonner";
+import { formatCurrency } from "@/utils/formatting";
+import { supabase } from "@/integrations/supabase/client";
 import { ActivityTypes, logActivity } from "@/services/activityService";
-import { useAuth } from "@/context/AuthContext";
 
-export interface TransactionFormProps {
-  categories: Category[];
-  handleAddTransaction: () => Promise<void>;
-  newTransaction: {
-    amount: string;
-    description: string;
-    category: string;
-    type: "income" | "expense";
-  };
-  setNewTransaction: React.Dispatch<
-    React.SetStateAction<{
-      amount: string;
-      description: string;
-      category: string;
-      type: "income" | "expense";
-    }>
-  >;
-}
+const TransactionForm = ({ userId, onAddTransaction }) => {
+  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState("");
+  const [type, setType] = useState("expense");
+  const [date, setDate] = useState(new Date());
 
-const TransactionForm: React.FC<TransactionFormProps> = ({
-  categories,
-  handleAddTransaction,
-  newTransaction,
-  setNewTransaction,
-}) => {
-  const { user } = useAuth();
-  
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    await handleAddTransaction();
-    
-    // Log activity
-    if (user) {
-      const actionType = newTransaction.type === "income" ? "received" : "spent";
-      const amount = parseFloat(newTransaction.amount);
+    if (!description || !amount || !category) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    const newTransaction = {
+      // Remove the uuidv4() call as Supabase will generate the ID
+      user_id: userId,
+      description,
+      amount: Number(amount),
+      category,
+      type,
+      date: date.toISOString()
+    };
+
+    try {
+      const { data, error } = await supabase.from("transactions").insert([newTransaction]);
       
-      if (!isNaN(amount)) {
-        await logActivity(
-          user.id,
-          ActivityTypes.TRANSACTION,
-          `${actionType === "received" ? "Received" : "Spent"} $${amount.toFixed(2)} for ${newTransaction.description}`
-        );
+      if (error) throw error;
+
+      // Log transaction activity
+      logActivity(
+        userId, 
+        ActivityTypes.TRANSACTION, 
+        `Added ${type} transaction: ${description} (${formatCurrency(Number(amount))})`
+      );
+
+      setDescription("");
+      setAmount("");
+      setCategory("");
+      setType("expense");
+      setDate(new Date());
+      
+      toast.success("Transaction added successfully");
+      
+      // Pass the new transaction with its ID back to the parent component
+      if (data && data[0]) {
+        onAddTransaction(data[0]);
       }
+    } catch (error) {
+      console.error("Error adding transaction:", error);
+      toast.error("Failed to add transaction");
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Add Transaction</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label
-                htmlFor="transaction-type"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Type
-              </label>
-              <Select
-                value={newTransaction.type}
-                onValueChange={(value) =>
-                  setNewTransaction({
-                    ...newTransaction,
-                    type: value as "income" | "expense",
-                  })
-                }
-              >
-                <SelectTrigger
-                  id="transaction-type"
-                  className="w-full"
-                  aria-label="Select transaction type"
-                >
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="income">Income</SelectItem>
-                  <SelectItem value="expense">Expense</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label
-                htmlFor="amount"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Amount
-              </label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Enter amount"
-                value={newTransaction.amount}
-                onChange={(e) =>
-                  setNewTransaction({
-                    ...newTransaction,
-                    amount: e.target.value,
-                  })
-                }
-                required
-              />
-            </div>
-          </div>
+    <form onSubmit={handleSubmit} className="grid gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="description">Description</Label>
+          <Input
+            type="text"
+            id="description"
+            placeholder="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="amount">Amount</Label>
+          <Input
+            type="number"
+            id="amount"
+            placeholder="Amount"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            required
+          />
+        </div>
+      </div>
 
-          <div className="space-y-2">
-            <label
-              htmlFor="category"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Category
-            </label>
-            <Select
-              value={newTransaction.category}
-              onValueChange={(value) =>
-                setNewTransaction({
-                  ...newTransaction,
-                  category: value,
-                })
-              }
-            >
-              <SelectTrigger
-                id="category"
-                className="w-full"
-                aria-label="Select category"
-              >
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.length > 0 ? (
-                  categories.map((category) => (
-                    <SelectItem key={category.id} value={category.name}>
-                      {category.name}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <>
-                    <SelectItem value="Food">Food</SelectItem>
-                    <SelectItem value="Transportation">Transportation</SelectItem>
-                    <SelectItem value="Entertainment">Entertainment</SelectItem>
-                    <SelectItem value="Housing">Housing</SelectItem>
-                    <SelectItem value="Utilities">Utilities</SelectItem>
-                    <SelectItem value="Savings">Savings</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+      <div>
+        <Label htmlFor="category">Category</Label>
+        <Select onValueChange={setCategory}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Food">Food</SelectItem>
+            <SelectItem value="Transportation">Transportation</SelectItem>
+            <SelectItem value="Housing">Housing</SelectItem>
+            <SelectItem value="Utilities">Utilities</SelectItem>
+            <SelectItem value="Entertainment">Entertainment</SelectItem>
+            <SelectItem value="Salary">Salary</SelectItem>
+            <SelectItem value="Investments">Investments</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-          <div className="space-y-2">
-            <label
-              htmlFor="description"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Description
-            </label>
-            <Textarea
-              id="description"
-              placeholder="Enter description"
-              value={newTransaction.description}
-              onChange={(e) =>
-                setNewTransaction({
-                  ...newTransaction,
-                  description: e.target.value,
-                })
-              }
-              required
-            />
+      <div>
+        <Label>Type</Label>
+        <RadioGroup defaultValue="expense" className="flex gap-2" onValueChange={(value) => setType(value)}>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="expense" id="r1" />
+            <Label htmlFor="r1">Expense</Label>
           </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="income" id="r2" />
+            <Label htmlFor="r2">Income</Label>
+          </div>
+        </RadioGroup>
+      </div>
 
-          <Button type="submit" className="w-full">
-            Add Transaction
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+      <div>
+        <Label>Date</Label>
+        <DatePicker
+          selected={date}
+          onSelect={setDate}
+          required
+        />
+      </div>
+
+      <Button type="submit">Add Transaction</Button>
+    </form>
   );
 };
 
