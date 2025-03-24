@@ -6,6 +6,7 @@ import Layout from "@/components/Layout";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { Investment, getInvestmentSuggestions } from "@/utils/mockData";
 import { generateGrowthData } from "@/utils/investmentUtils";
+import { ActivityTypes, logActivity } from "@/services/activityService";
 
 // Import refactored components
 import InvestmentSummaryCards from "@/components/investment/InvestmentSummaryCards";
@@ -13,6 +14,11 @@ import InvestmentSuggestions from "@/components/investment/InvestmentSuggestions
 import InvestmentRecommendations from "@/components/investment/InvestmentRecommendations";
 import PortfolioCharts from "@/components/investment/PortfolioCharts";
 import InvestmentList from "@/components/investment/InvestmentList";
+
+// Import new components
+import LiveStockTracker from "@/components/investment/LiveStockTracker";
+import AIInvestmentAdvisor from "@/components/investment/AIInvestmentAdvisor";
+import PortfolioRebalancer from "@/components/investment/PortfolioRebalancer";
 
 const InvestmentPage = () => {
   const { isAuthenticated, user, userProfile } = useAuth();
@@ -26,8 +32,15 @@ const InvestmentPage = () => {
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
+    } else if (user) {
+      // Log activity when visiting the page
+      logActivity(
+        user.id,
+        ActivityTypes.INVESTMENT,
+        "Viewed investment page"
+      );
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, user]);
   
   // Get investment suggestions based on user income
   const investmentSuggestions = userProfile?.totalIncome 
@@ -73,7 +86,7 @@ const InvestmentPage = () => {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto text-left">
+      <div className="max-w-7xl mx-auto px-4 text-left">
         <h1 className="text-3xl font-bold mb-6">Investments</h1>
         
         {/* Summary Cards */}
@@ -84,6 +97,22 @@ const InvestmentPage = () => {
           investments={investments}
           projectedValue={growthData[growthData.length - 1]?.value || 0}
         />
+        
+        {/* Live Stock Tracker */}
+        <LiveStockTracker />
+        
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          {/* Left Column - AI Advisor */}
+          <div className="lg:col-span-2">
+            <AIInvestmentAdvisor />
+          </div>
+          
+          {/* Right Column - Portfolio Rebalancer */}
+          <div>
+            <PortfolioRebalancer />
+          </div>
+        </div>
         
         {/* Smart Investment Recommendations */}
         <InvestmentRecommendations
@@ -97,7 +126,7 @@ const InvestmentPage = () => {
           hasIncomeInfo={!!userProfile?.totalIncome}
         />
         
-        {/* Main Content */}
+        {/* Lower Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Charts */}
           <div className="lg:col-span-2 space-y-8">

@@ -1,8 +1,10 @@
 
 import React from "react";
 import { Menu, X } from "lucide-react";
-import ThemeToggle from "./ThemeToggle";
+import { Button } from "@/components/ui/button";
 import ProfileMenu from "./ProfileMenu";
+import ThemeToggle from "./ThemeToggle";
+import NotificationManager from "../notifications/NotificationManager";
 
 interface MobileMenuToggleProps {
   isOpen: boolean;
@@ -10,28 +12,29 @@ interface MobileMenuToggleProps {
   toggleMenu: () => void;
 }
 
-const MobileMenuToggle: React.FC<MobileMenuToggleProps> = ({ 
-  isOpen, 
-  isAuthenticated, 
-  toggleMenu 
+const MobileMenuToggle: React.FC<MobileMenuToggleProps> = ({
+  isOpen,
+  isAuthenticated,
+  toggleMenu,
 }) => {
   return (
-    <div className="flex md:hidden items-center space-x-2">
-      <ThemeToggle />
+    <div className="flex items-center gap-2 lg:hidden">
       {isAuthenticated && (
-        <ProfileMenu />
+        <>
+          <NotificationManager />
+          <ProfileMenu />
+          <ThemeToggle />
+        </>
       )}
-      <button
-        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+      <Button
+        variant="ghost"
+        size="icon"
+        className="ml-1"
+        aria-label={isOpen ? "Close menu" : "Open menu"}
         onClick={toggleMenu}
-        aria-label="Menu"
       >
-        {isOpen ? (
-          <X className="w-6 h-6" />
-        ) : (
-          <Menu className="w-6 h-6" />
-        )}
-      </button>
+        {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      </Button>
     </div>
   );
 };

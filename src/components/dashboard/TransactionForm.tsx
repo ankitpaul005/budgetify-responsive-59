@@ -1,161 +1,149 @@
-
 import React, { useState } from "react";
-import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
-import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { v4 as uuidv4 } from "uuid";
+import { Calendar } from "lucide-react";
+import { format } from "date-fns";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
-import { Category } from "@/utils/mockData";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
+import { formatCurrency } from "@/utils/formatting";
+import { Transaction } from "@/utils/mockData";
+import { supabase } from "@/integrations/supabase/client";
+import { ActivityTypes, logActivity } from "@/services/activityService";
+import { useAuth } from "@/context/AuthContext";
 
 interface TransactionFormProps {
-  newTransaction: {
-    amount: string;
-    description: string;
-    category: string;
-    type: string;
-  };
-  setNewTransaction: React.Dispatch<React.SetStateAction<{
-    amount: string;
-    description: string;
-    category: string;
-    type: string;
-  }>>;
-  categories: Category[];
-  handleAddTransaction: () => void;
+  userId: string | undefined;
+  onAddTransaction: (transaction: Transaction) => void;
 }
 
-const TransactionForm: React.FC<TransactionFormProps> = ({
-  newTransaction,
-  setNewTransaction,
-  categories,
-  handleAddTransaction,
-}) => {
-  const [transactionType, setTransactionType] = useState(newTransaction.type);
+const TransactionForm: React.FC<TransactionFormProps> = ({ userId, onAddTransaction }) => {
+  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState("");
+  const [type, setType] = useState<"income" | "expense">("expense");
+  const [date, setDate] = useState<Date>(new Date());
 
-  const handleTypeChange = (type: string) => {
-    setTransactionType(type);
-    setNewTransaction({
-      ...newTransaction,
-      type,
-    });
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!description || !amount || !category) {
+    toast.error("Please fill all required fields");
+    return;
+  }
+  
+  const newTransaction = {
+    id: uuidv4(),
+    user_id: userId,
+    description,
+    amount: Number(amount),
+    category,
+    type,
+    date: date.toISOString(),
   };
-
-  const handleSubmit = () => {
-    if (!newTransaction.amount || parseFloat(newTransaction.amount) <= 0) {
-      toast.error("Please enter a valid amount");
-      return;
-    }
+  
+  try {
+    const { error } = await supabase
+      .from("transactions")
+      .insert([newTransaction]);
+      
+    if (error) throw error;
     
-    if (!newTransaction.description) {
-      toast.error("Please enter a description");
-      return;
-    }
+    // Log transaction activity
+    logActivity(
+      userId, 
+      ActivityTypes.TRANSACTION, 
+      `Added ${type} transaction: ${description} (${formatCurrency(Number(amount))})`
+    );
     
-    if (!newTransaction.category) {
-      toast.error("Please select a category");
-      return;
-    }
+    setDescription("");
+    setAmount("");
+    setCategory("");
+    setType("expense");
+    setDate(new Date());
     
-    handleAddTransaction();
-  };
+    toast.success("Transaction added successfully");
+    onAddTransaction(newTransaction);
+  } catch (error) {
+    console.error("Error adding transaction:", error);
+    toast.error("Failed to add transaction");
+  }
+};
 
   return (
-    <GlassmorphicCard>
-      <CardHeader className="pb-2">
-        <CardTitle>Add Transaction</CardTitle>
-        <CardDescription>
-          Record your finances
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant={transactionType === "expense" ? "default" : "outline"}
-              className={transactionType === "expense" ? "bg-budget-red hover:bg-budget-red/90" : ""}
-              onClick={() => handleTypeChange("expense")}
-            >
-              Expense
-            </Button>
-            <Button
-              variant={transactionType === "income" ? "default" : "outline"}
-              className={transactionType === "income" ? "bg-budget-green hover:bg-budget-green/90" : ""}
-              onClick={() => handleTypeChange("income")}
-            >
-              Income
-            </Button>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                ₹
-              </span>
-              <Input
-                id="amount"
-                type="number"
-                placeholder="0"
-                className="pl-8 input-focus-ring"
-                min="0"
-                step="1"
-                value={newTransaction.amount}
-                onChange={(e) =>
-                  setNewTransaction({
-                    ...newTransaction,
-                    amount: e.target.value,
-                  })
-                }
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Input
-              id="description"
-              placeholder="What was this for?"
-              className="input-focus-ring"
-              value={newTransaction.description}
-              onChange={(e) =>
-                setNewTransaction({
-                  ...newTransaction,
-                  description: e.target.value,
-                })
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <select
-              id="category"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
-              value={newTransaction.category}
-              onChange={(e) =>
-                setNewTransaction({
-                  ...newTransaction,
-                  category: e.target.value,
-                })
-              }
-            >
-              <option value="">Select a category</option>
-              {categories
-                .filter((c) => c.budget)
-                .map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-          <Button
-            className="w-full"
-            onClick={handleSubmit}
-          >
-            Add Transaction
-          </Button>
+    <form onSubmit={handleSubmit} className="grid gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="description">Description</Label>
+          <Input
+            type="text"
+            id="description"
+            placeholder="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+          />
         </div>
-      </CardContent>
-    </GlassmorphicCard>
+        <div>
+          <Label htmlFor="amount">Amount</Label>
+          <Input
+            type="number"
+            id="amount"
+            placeholder="Amount"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="category">Category</Label>
+        <Select onValueChange={setCategory}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Food">Food</SelectItem>
+            <SelectItem value="Transportation">Transportation</SelectItem>
+            <SelectItem value="Housing">Housing</SelectItem>
+            <SelectItem value="Utilities">Utilities</SelectItem>
+            <SelectItem value="Entertainment">Entertainment</SelectItem>
+            <SelectItem value="Salary">Salary</SelectItem>
+            <SelectItem value="Investments">Investments</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label>Type</Label>
+        <RadioGroup defaultValue="expense" className="flex gap-2" onValueChange={value => setType(value as "income" | "expense")}>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="expense" id="r1" />
+            <Label htmlFor="r1">Expense</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="income" id="r2" />
+            <Label htmlFor="r2">Income</Label>
+          </div>
+        </RadioGroup>
+      </div>
+
+      <div>
+        <Label>Date</Label>
+        <DatePicker
+          selected={date}
+          onSelect={setDate}
+          required
+        />
+      </div>
+
+      <Button type="submit">Add Transaction</Button>
+    </form>
   );
 };
 

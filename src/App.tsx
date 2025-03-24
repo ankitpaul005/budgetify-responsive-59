@@ -12,12 +12,14 @@ import IndexPage from "./pages/Index";
 import DashboardPage from "./pages/Dashboard";
 import InvestmentPage from "./pages/Investment";
 import AnalyticsPage from "./pages/Analytics";
+import ActivityPage from "./pages/Activity";
 import LoginPage from "./pages/Login";
 import SignUpPage from "./pages/SignUp";
 import NotFoundPage from "./pages/NotFound";
 import ChatbotDialog from "./components/chat/ChatbotDialog";
 import VoiceCommandListener from "./components/voice/VoiceCommandListener";
 import SignupPrompt from "./components/auth/SignupPrompt";
+import NotificationManager from "./components/notifications/NotificationManager";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -33,6 +35,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/investments" element={<InvestmentPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/activity" element={<ActivityPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignUpPage />} />
               <Route path="*" element={<NotFoundPage />} />

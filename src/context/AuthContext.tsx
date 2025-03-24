@@ -1,9 +1,9 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { ActivityTypes, logActivity } from "@/services/activityService";
 
 // Define user types
 export type UserProfile = {
@@ -115,35 +115,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Login function
-  const login = async (email: string, password: string): Promise<boolean> => {
-    setLoading(true);
-    
+  const login = async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
+      if (error) throw error;
+
+      setUser(data.user);
+      setSession(data.session);
       
-      if (error) {
-        toast.error(error.message);
-        setLoading(false);
-        return false;
-      }
-      
-      console.log("Login successful, user:", data.user);
-      toast.success("Login successful!");
-      
+      // Log login activity
       if (data.user) {
-        await fetchUserProfile(data.user.id);
+        logActivity(data.user.id, ActivityTypes.LOGIN, "User logged in");
       }
       
-      navigate("/dashboard");
-      return true;
-    } catch (error: any) {
-      console.error("Login error:", error);
-      toast.error(error.message || "An error occurred during login");
-      setLoading(false);
-      return false;
+      return data;
+    } catch (error) {
+      console.error("Error logging in:", error);
+      throw error;
     }
   };
 
@@ -209,14 +201,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout function
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      // Log logout activity before actually logging out
+      if (user) {
+        await logActivity(user.id, ActivityTypes.LOGOUT, "User logged out");
+      }
+      
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
       setUser(null);
-      setUserProfile(null);
       setSession(null);
-      toast.info("You have been logged out");
-      navigate("/");
+      setUserProfile(null);
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("Error logging out:", error);
       throw error;
     }
   };
