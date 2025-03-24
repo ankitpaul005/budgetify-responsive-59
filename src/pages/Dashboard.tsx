@@ -12,6 +12,7 @@ import TransactionForm from "@/components/dashboard/TransactionForm";
 import RecentTransactions from "@/components/dashboard/RecentTransactions";
 import { supabase } from "@/integrations/supabase/client";
 import useLocalStorage from "@/hooks/useLocalStorage";
+import { ActivityTypes, logActivity } from "@/services/activityService";
 
 const Dashboard = () => {
   const { isAuthenticated, user, userProfile, updateUserIncome } = useAuth();
@@ -31,7 +32,7 @@ const Dashboard = () => {
     amount: "",
     description: "",
     category: "",
-    type: "expense",
+    type: "expense" as "income" | "expense",
   });
   
   const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
@@ -110,6 +111,9 @@ const Dashboard = () => {
     
     try {
       await updateUserIncome(income);
+      
+      // Activity logging is now handled in the updateUserIncome function
+      
       toast.success("Income updated successfully");
       setIncomeDialogOpen(false);
     } catch (error) {
@@ -160,7 +164,7 @@ const Dashboard = () => {
         amount,
         description: newTransaction.description,
         category: newTransaction.category,
-        type: newTransaction.type as "income" | "expense",
+        type: newTransaction.type,
         date: data[0].date,
       };
       

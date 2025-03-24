@@ -12,6 +12,14 @@ export const ActivityTypes = {
   AI_INTERACTION: "AI Interaction",
 };
 
+export interface ActivityItem {
+  id: string;
+  user_id: string;
+  activity_type: string;
+  description: string;
+  created_at: string;
+}
+
 export const logActivity = async (
   userId: string | undefined,
   activityType: string,
@@ -51,7 +59,7 @@ export const getRecentActivities = async (userId: string, limit = 5) => {
       throw error;
     }
 
-    return data;
+    return data as ActivityItem[];
   } catch (error) {
     console.error("Failed to fetch recent activities:", error);
     toast.error("Failed to load recent activities");

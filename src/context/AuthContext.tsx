@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -115,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Login function
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -132,10 +133,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logActivity(data.user.id, ActivityTypes.LOGIN, "User logged in");
       }
       
-      return data;
+      return !!data.user;
     } catch (error) {
       console.error("Error logging in:", error);
-      throw error;
+      return false;
     }
   };
 
@@ -189,6 +190,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
+      // Log activity
+      await logActivity(user.id, ActivityTypes.PROFILE_UPDATE, "Updated income to " + income);
+      
       // Update local state
       setUserProfile(prev => prev ? { ...prev, totalIncome: income } : null);
       toast.success("Income updated successfully!");
@@ -212,6 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setSession(null);
       setUserProfile(null);
+      navigate("/login");
     } catch (error) {
       console.error("Error logging out:", error);
       throw error;

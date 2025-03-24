@@ -18,8 +18,8 @@ const ActivityPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <h1 className="text-3xl font-bold mb-6">Activity Log</h1>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Activity Log</h1>
         <ActivityLog />
       </div>
     </Layout>

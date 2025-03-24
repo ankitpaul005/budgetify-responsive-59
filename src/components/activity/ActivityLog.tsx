@@ -2,21 +2,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Search, Filter, RefreshCw } from "lucide-react";
+import { Activity, Search, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface ActivityItem {
-  id: string;
-  user_id: string;
-  activity_type: string;
-  description: string;
-  created_at: string;
-}
+import { ActivityItem, getRecentActivities } from "@/services/activityService";
 
 const ActivityLog: React.FC = () => {
   const { user } = useAuth();
@@ -37,18 +29,10 @@ const ActivityLog: React.FC = () => {
   const fetchActivities = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("activities")
-        .select("*")
-        .eq("user_id", user?.id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching activities:", error);
-        throw error;
-      }
-
-      setActivities(data || []);
+      if (!user?.id) return;
+      
+      const data = await getRecentActivities(user.id, 100);
+      setActivities(data);
     } catch (error) {
       console.error("Failed to fetch activities:", error);
     } finally {
@@ -65,11 +49,13 @@ const ActivityLog: React.FC = () => {
   const getActivityIcon = (type: string) => {
     switch (type.toLowerCase()) {
       case "login":
-        return <Activity className="h-4 w-4 text-budget-blue" />;
+        return <Activity className="h-4 w-4 text-blue-500" />;
       case "transaction":
-        return <Activity className="h-4 w-4 text-budget-green" />;
+        return <Activity className="h-4 w-4 text-green-500" />;
       case "investment":
-        return <Activity className="h-4 w-4 text-budget-yellow" />;
+        return <Activity className="h-4 w-4 text-yellow-500" />;
+      case "ai interaction":
+        return <Activity className="h-4 w-4 text-purple-500" />;
       default:
         return <Activity className="h-4 w-4" />;
     }
