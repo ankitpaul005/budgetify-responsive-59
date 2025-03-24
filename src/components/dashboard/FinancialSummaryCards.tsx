@@ -33,15 +33,15 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
 }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-      <GlassmorphicCard className="relative overflow-hidden">
-        <div className="absolute top-2 right-2 bg-budget-green-light text-budget-green rounded-full p-2">
+      <GlassmorphicCard className="relative overflow-hidden transition-all hover:shadow-md p-4">
+        <div className="absolute top-3 right-3 bg-budget-green-light text-budget-green rounded-full p-2.5">
           <Wallet className="w-5 h-5" />
         </div>
-        <h3 className="text-lg font-medium text-muted-foreground mb-2">
+        <h3 className="text-lg font-medium text-muted-foreground mb-3">
           Current Balance
         </h3>
         {userIncome !== undefined ? (
-          <p className="text-3xl font-bold mb-1">
+          <p className="text-3xl md:text-4xl font-bold mb-2">
             {formatCurrency(balance)}
           </p>
         ) : (
@@ -55,12 +55,12 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
         </div>
       </GlassmorphicCard>
       
-      <GlassmorphicCard className="relative overflow-hidden">
-        <div className="absolute top-2 right-2 flex gap-2">
+      <GlassmorphicCard className="relative overflow-hidden transition-all hover:shadow-md p-4">
+        <div className="absolute top-3 right-3 flex gap-2">
           <Dialog open={incomeDialogOpen} onOpenChange={setIncomeDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="icon" variant="ghost" className="h-9 w-9 bg-budget-blue-light text-budget-blue rounded-full p-2">
-                <Edit className="w-4 h-4" />
+              <Button size="icon" variant="ghost" className="h-10 w-10 bg-budget-blue-light text-budget-blue rounded-full p-2.5">
+                <Edit className="w-5 h-5" />
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
@@ -92,15 +92,15 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          <div className="bg-budget-blue-light text-budget-blue rounded-full p-2">
+          <div className="bg-budget-blue-light text-budget-blue rounded-full p-2.5">
             <CircleDollarSign className="w-5 h-5" />
           </div>
         </div>
-        <h3 className="text-lg font-medium text-muted-foreground mb-2">
+        <h3 className="text-lg font-medium text-muted-foreground mb-3">
           Total Income
         </h3>
         {userIncome !== undefined && userIncome > 0 ? (
-          <p className="text-3xl font-bold mb-1">
+          <p className="text-3xl md:text-4xl font-bold mb-2">
             {formatCurrency(userIncome)}
           </p>
         ) : (
@@ -114,15 +114,15 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
         </div>
       </GlassmorphicCard>
       
-      <GlassmorphicCard className="relative overflow-hidden">
-        <div className="absolute top-2 right-2 bg-budget-red-light text-budget-red rounded-full p-2">
+      <GlassmorphicCard className="relative overflow-hidden transition-all hover:shadow-md p-4">
+        <div className="absolute top-3 right-3 bg-budget-red-light text-budget-red rounded-full p-2.5">
           <CreditCard className="w-5 h-5" />
         </div>
-        <h3 className="text-lg font-medium text-muted-foreground mb-2">
+        <h3 className="text-lg font-medium text-muted-foreground mb-3">
           Total Expenses
         </h3>
         {expenses > 0 || hasTransactions ? (
-          <p className="text-3xl font-bold mb-1">
+          <p className="text-3xl md:text-4xl font-bold mb-2">
             {formatCurrency(expenses)}
           </p>
         ) : (
