@@ -8,7 +8,19 @@ export enum ActivityTypes {
   BUDGET = "budget",
   INCOME = "income",
   INVESTMENT = "investment",
-  PROFILE = "profile"
+  PROFILE = "profile",
+  PROFILE_UPDATE = "profile_update", // Added missing type
+  LOGOUT = "logout"                   // Added missing type
+}
+
+// Define the ActivityItem type for TypeScript
+export interface ActivityItem {
+  id: string;
+  user_id: string;
+  activity_type: string;
+  description: string;
+  created_at: string;
+  // Add any other properties that might be in your activities table
 }
 
 export const logActivity = async (
@@ -33,7 +45,7 @@ export const logActivity = async (
   }
 };
 
-export const getRecentActivities = async (userId: string, limit = 10) => {
+export const getRecentActivities = async (userId: string, limit = 10): Promise<ActivityItem[]> => {
   try {
     const { data, error } = await supabase
       .from("activities")
