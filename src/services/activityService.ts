@@ -23,7 +23,7 @@ export interface ActivityItem {
   type: ActivityTypes;
   description: string;
   created_at: string;
-  metadata?: any;
+  activity_type: string; // Added to match how it's used in ActivityLog
 }
 
 // Log activity function
@@ -35,12 +35,11 @@ export const logActivity = async (
 ) => {
   try {
     const { data, error } = await supabase
-      .from("user_activity")
+      .from("activities")
       .insert({
         user_id: userId,
-        type,
-        description,
-        metadata: metadata || {}
+        activity_type: type,
+        description
       })
       .select();
 
@@ -65,7 +64,7 @@ export const getUserActivities = async (
 ) => {
   try {
     let query = supabase
-      .from("user_activity")
+      .from("activities")
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
@@ -73,7 +72,7 @@ export const getUserActivities = async (
 
     // Add type filter if specified
     if (type) {
-      query = query.eq("type", type);
+      query = query.eq("activity_type", type);
     }
 
     const { data, error } = await query;
@@ -88,4 +87,9 @@ export const getUserActivities = async (
     console.error("Failed to fetch activities:", error);
     return [];
   }
+};
+
+// Function used in ActivityLog component 
+export const getRecentActivities = async (userId: string, limit = 100) => {
+  return getUserActivities(userId, limit);
 };
