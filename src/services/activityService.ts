@@ -1,41 +1,29 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
-export const ActivityTypes = {
-  LOGIN: "Login",
-  LOGOUT: "Logout",
-  TRANSACTION: "Transaction",
-  INVESTMENT: "Investment",
-  PROFILE_UPDATE: "Profile Update",
-  SETTINGS_CHANGE: "Settings Change",
-  AI_INTERACTION: "AI Interaction",
-};
-
-export interface ActivityItem {
-  id: string;
-  user_id: string;
-  activity_type: string;
-  description: string;
-  created_at: string;
+export enum ActivityTypes {
+  LOGIN = "login",
+  SIGNUP = "signup",
+  TRANSACTION = "transaction",
+  BUDGET = "budget",
+  INCOME = "income",
+  INVESTMENT = "investment",
+  PROFILE = "profile"
 }
 
 export const logActivity = async (
-  userId: string | undefined,
-  activityType: string,
+  userId: string,
+  activityType: ActivityTypes,
   description: string
 ) => {
-  if (!userId) {
-    console.warn("Cannot log activity: User ID is undefined");
-    return;
-  }
-
   try {
-    const { error } = await supabase.from("activities").insert({
-      user_id: userId,
-      activity_type: activityType,
-      description,
-    });
+    const { error } = await supabase
+      .from("activities")
+      .insert({
+        user_id: userId,
+        activity_type: activityType,
+        description
+      });
 
     if (error) {
       console.error("Error logging activity:", error);
@@ -45,7 +33,7 @@ export const logActivity = async (
   }
 };
 
-export const getRecentActivities = async (userId: string, limit = 5) => {
+export const getRecentActivities = async (userId: string, limit = 10) => {
   try {
     const { data, error } = await supabase
       .from("activities")
@@ -55,14 +43,13 @@ export const getRecentActivities = async (userId: string, limit = 5) => {
       .limit(limit);
 
     if (error) {
-      console.error("Error fetching recent activities:", error);
-      throw error;
+      console.error("Error fetching activities:", error);
+      return [];
     }
 
-    return data as ActivityItem[];
+    return data || [];
   } catch (error) {
-    console.error("Failed to fetch recent activities:", error);
-    toast.error("Failed to load recent activities");
+    console.error("Failed to fetch activities:", error);
     return [];
   }
 };

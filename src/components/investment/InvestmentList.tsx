@@ -1,19 +1,23 @@
 
-import React from "react";
+import React, { useState } from "react";
 import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { TrendingUp, TrendingDown, Calendar } from "lucide-react";
 import { formatCurrency, formatPercent } from "@/utils/formatting";
 import { Investment } from "@/utils/mockData";
 import { differenceInDays, differenceInMonths } from "date-fns";
+import InvestmentForm from "./InvestmentForm";
 
 interface InvestmentListProps {
   investments: Investment[];
 }
 
 const InvestmentList: React.FC<InvestmentListProps> = ({ investments }) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
   // Calculate days since investment started and annualized return
   const calculateInvestmentMetrics = (investment: Investment) => {
     const startDate = new Date(investment.startDate);
@@ -38,12 +42,17 @@ const InvestmentList: React.FC<InvestmentListProps> = ({ investments }) => {
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle>Your Investments</CardTitle>
-          <Button 
-            size="sm"
-            onClick={() => toast.info("Add investment feature coming soon!")}
-          >
-            Add New
-          </Button>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">Add New</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Add New Investment</DialogTitle>
+              </DialogHeader>
+              <InvestmentForm />
+            </DialogContent>
+          </Dialog>
         </div>
         <CardDescription>
           Track and manage your investments
