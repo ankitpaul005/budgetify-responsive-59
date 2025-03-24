@@ -1,6 +1,5 @@
 
 import React, { useState } from "react";
-import { v4 as uuidv4 } from "@/node_modules/uuid"; // Updated import path
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,7 +36,7 @@ const TransactionForm = ({ userId, onAddTransaction }) => {
     };
 
     try {
-      const { data, error } = await supabase.from("transactions").insert([newTransaction]);
+      const { data, error } = await supabase.from("transactions").insert([newTransaction]).select();
       
       if (error) throw error;
 

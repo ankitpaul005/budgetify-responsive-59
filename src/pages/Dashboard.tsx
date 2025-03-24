@@ -28,13 +28,6 @@ const Dashboard = () => {
     { id: "", amount: 0, period: "monthly", startDate: "", categories: [] }
   );
   
-  const [newTransaction, setNewTransaction] = useState({
-    amount: "",
-    description: "",
-    category: "",
-    type: "expense" as "income" | "expense",
-  });
-  
   const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
   const [newIncome, setNewIncome] = useState(userProfile?.totalIncome?.toString() || "");
   const [isLoading, setIsLoading] = useState(true);
@@ -122,67 +115,9 @@ const Dashboard = () => {
     }
   };
   
-  const handleAddTransaction = async () => {
-    if (!user) return;
-    
-    if (!newTransaction.amount || !newTransaction.description || !newTransaction.category) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-    
-    const amount = parseFloat(newTransaction.amount);
-    if (isNaN(amount) || amount <= 0) {
-      toast.error("Please enter a valid amount");
-      return;
-    }
-    
-    try {
-      console.log("Adding transaction:", newTransaction);
-      const transactionData = {
-        user_id: user.id,
-        amount: amount,
-        description: newTransaction.description,
-        category: newTransaction.category,
-        type: newTransaction.type,
-        date: new Date().toISOString(),
-      };
-      
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert([transactionData])
-        .select();
-      
-      if (error) {
-        throw error;
-      }
-      
-      console.log("Transaction added:", data);
-      
-      // Add the new transaction to the state
-      const newTrans: Transaction = {
-        id: data[0].id,
-        amount,
-        description: newTransaction.description,
-        category: newTransaction.category,
-        type: newTransaction.type,
-        date: data[0].date,
-      };
-      
-      setTransactions([newTrans, ...transactions]);
-      
-      setNewTransaction({
-        amount: "",
-        description: "",
-        category: "",
-        type: "expense",
-      });
-      
-      toast.success("Transaction added successfully");
-      
-    } catch (error: any) {
-      console.error("Error adding transaction:", error);
-      toast.error("Failed to add transaction: " + error.message);
-    }
+  const handleAddTransaction = (newTransaction) => {
+    // Add the new transaction to the list
+    setTransactions([newTransaction, ...transactions]);
   };
   
   const COLORS = [
@@ -227,11 +162,9 @@ const Dashboard = () => {
           </div>
           
           <div className="space-y-8">
-            <TransactionForm
-              newTransaction={newTransaction}
-              setNewTransaction={setNewTransaction}
-              categories={categories}
-              handleAddTransaction={handleAddTransaction}
+            <TransactionForm 
+              userId={user?.id}
+              onAddTransaction={handleAddTransaction}
             />
             
             <RecentTransactions
