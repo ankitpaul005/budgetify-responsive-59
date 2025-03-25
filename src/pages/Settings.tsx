@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -32,7 +31,7 @@ const SettingsPage = () => {
   
   const [name, setName] = useState(userProfile?.name || "");
   const [email, setEmail] = useState(user?.email || "");
-  const [income, setIncome] = useState(userProfile?.totalIncome?.toString() || "0");
+  const [income, setIncome] = useState(userProfile?.total_income?.toString() || "0");
   const [currency, setCurrency] = useState(userProfile?.currency || "INR");
   
   // Update form when userProfile changes
@@ -40,8 +39,8 @@ const SettingsPage = () => {
     if (userProfile) {
       setName(userProfile.name || "");
       setCurrency(userProfile.currency || "INR");
-      if (userProfile.totalIncome) {
-        setIncome(userProfile.totalIncome.toString());
+      if (userProfile.total_income) {
+        setIncome(userProfile.total_income.toString());
       }
     }
   }, [userProfile]);
@@ -82,7 +81,7 @@ const SettingsPage = () => {
     try {
       await updateProfile({
         name,
-        totalIncome: parseFloat(income),
+        total_income: parseFloat(income),
         currency: currency,
       });
       

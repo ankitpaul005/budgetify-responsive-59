@@ -50,6 +50,9 @@ const LiveStockTracker: React.FC = () => {
     setSelectedStock(null);
   };
 
+  // Default to INR if currency isn't available in userProfile
+  const activeCurrency = "INR";
+
   return (
     <GlassmorphicCard className="mb-8">
       <CardHeader className="pb-2">
@@ -110,7 +113,7 @@ const LiveStockTracker: React.FC = () => {
                   <p className="text-sm text-muted-foreground">{stock.name}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium">{formatCurrency(stock.price, userProfile?.currency || "INR")}</p>
+                  <p className="font-medium">{formatCurrency(stock.price, activeCurrency)}</p>
                   <div className="flex items-center justify-end gap-1">
                     {stock.changePercent >= 0 ? (
                       <TrendingUp className="h-3 w-3 text-budget-green" />

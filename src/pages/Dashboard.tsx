@@ -36,7 +36,7 @@ const Dashboard = () => {
   
   const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
   const [phoneDialogOpen, setPhoneDialogOpen] = useState(false);
-  const [newIncome, setNewIncome] = useState(userProfile?.totalIncome?.toString() || "");
+  const [newIncome, setNewIncome] = useState(userProfile?.total_income?.toString() || "");
   const [phoneNumber, setPhoneNumber] = useState(userProfile?.phone_number || "");
   const [isLoading, setIsLoading] = useState(true);
   const [isResetting, setIsResetting] = useState(false);
@@ -58,8 +58,8 @@ const Dashboard = () => {
   // Update newIncome when userProfile changes
   useEffect(() => {
     console.log("Dashboard: User profile updated:", userProfile);
-    if (userProfile?.totalIncome) {
-      setNewIncome(userProfile.totalIncome.toString());
+    if (userProfile?.total_income) {
+      setNewIncome(userProfile.total_income.toString());
     }
     if (userProfile?.phone_number) {
       setPhoneNumber(userProfile.phone_number);
@@ -105,7 +105,7 @@ const Dashboard = () => {
   };
   
   // Calculate summary based on transactions and user income
-  const summary = calculateSummary(transactions, userProfile?.totalIncome || 0);
+  const summary = calculateSummary(transactions, userProfile?.total_income || 0);
   
   const handleUpdateIncome = async () => {
     const income = parseInt(newIncome);
@@ -250,7 +250,7 @@ const Dashboard = () => {
           
           <FinancialSummaryCards
             balance={summary.balance}
-            userIncome={userProfile?.totalIncome}
+            userIncome={userProfile?.total_income}
             expenses={summary.expenses}
             incomeDialogOpen={incomeDialogOpen}
             setIncomeDialogOpen={setIncomeDialogOpen}
@@ -266,7 +266,7 @@ const Dashboard = () => {
                 transactions={transactions}
                 categories={categories}
                 budget={budget}
-                userIncome={userProfile?.totalIncome}
+                userIncome={userProfile?.total_income}
                 COLORS={COLORS}
               />
             </div>

@@ -49,8 +49,8 @@ const InvestmentPage = () => {
   }, [isAuthenticated, navigate, user]);
   
   // Get investment suggestions based on user income
-  const investmentSuggestions = userProfile?.totalIncome 
-    ? getInvestmentSuggestions(userProfile.totalIncome / 12) 
+  const investmentSuggestions = userProfile?.total_income 
+    ? getInvestmentSuggestions(userProfile.total_income / 12) 
     : [];
   
   // Calculate total portfolio value
@@ -83,11 +83,11 @@ const InvestmentPage = () => {
   const growthData = generateGrowthData(
     totalValue,
     investments,
-    userProfile?.totalIncome
+    userProfile?.total_income
   );
 
   // Calculate available funds (10% of user income if present, or estimated value)
-  const monthlyIncome = userProfile?.totalIncome ? userProfile.totalIncome / 12 : 0;
+  const monthlyIncome = userProfile?.total_income ? userProfile.total_income / 12 : 0;
   const availableFunds = monthlyIncome * 0.1; // 10% of monthly income for investment
 
   const handleCurrencyChange = (currency: string) => {
@@ -167,14 +167,14 @@ const InvestmentPage = () => {
           {/* Smart Investment Recommendations */}
           <InvestmentRecommendations
             availableFunds={availableFunds}
-            hasIncomeInfo={!!userProfile?.totalIncome}
+            hasIncomeInfo={!!userProfile?.total_income}
             currency={activeCurrency}
           />
           
           {/* Investment Suggestions */}
           <InvestmentSuggestions
             investmentSuggestions={investmentSuggestions}
-            hasIncomeInfo={!!userProfile?.totalIncome}
+            hasIncomeInfo={!!userProfile?.total_income}
             currency={activeCurrency}
           />
           

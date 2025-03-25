@@ -20,6 +20,16 @@ const PortfolioCharts: React.FC<PortfolioChartsProps> = ({
   COLORS,
   currency = "INR", // Default to INR
 }) => {
+  // Helper function to safely convert to number
+  const toNumber = (value: any): number => {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  };
+
   return (
     <>
       <Card>
@@ -42,11 +52,11 @@ const PortfolioCharts: React.FC<PortfolioChartsProps> = ({
                     tickMargin={10}
                   />
                   <YAxis 
-                    tickFormatter={(value) => formatCurrency(value, currency)}
+                    tickFormatter={(value) => formatCurrency(toNumber(value), currency)}
                     tick={{ fontSize: 12 }}
                   />
                   <Tooltip 
-                    formatter={(value) => [formatCurrency(value, currency), "Projected Value"]}
+                    formatter={(value) => [formatCurrency(toNumber(value), currency), "Projected Value"]}
                     labelFormatter={(label) => `Date: ${label}`}
                   />
                   <Line 
@@ -92,7 +102,7 @@ const PortfolioCharts: React.FC<PortfolioChartsProps> = ({
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(value, currency)} />
+                  <Tooltip formatter={(value) => formatCurrency(toNumber(value), currency)} />
                   <Legend
                     layout="vertical"
                     verticalAlign="middle"
