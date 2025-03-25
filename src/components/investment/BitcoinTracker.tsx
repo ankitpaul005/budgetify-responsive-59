@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
@@ -9,9 +8,6 @@ import { Button } from "@/components/ui/button";
 import { fetchStockData } from "@/services/stockService";
 import { formatCurrency } from "@/utils/formatting";
 import { motion } from "framer-motion";
-
-// Add framer-motion for smoother animations
-<lov-add-dependency>framer-motion@latest</lov-add-dependency>
 
 const BitcoinTracker = () => {
   const [cryptoData, setCryptoData] = useState<any[]>([]);
@@ -130,7 +126,6 @@ const BitcoinTracker = () => {
       transition={{ duration: 0.5 }}
     >
       <GlassmorphicCard className="overflow-hidden relative">
-        {/* Animated background elements for 3D effect */}
         <div className="absolute -z-10 w-40 h-40 rounded-full bg-blue-500/10 blur-3xl top-10 right-20 animate-pulse" style={{ animationDuration: '8s' }}></div>
         <div className="absolute -z-10 w-60 h-60 rounded-full bg-purple-500/10 blur-3xl bottom-10 left-20 animate-pulse" style={{ animationDuration: '12s' }}></div>
         
@@ -157,7 +152,6 @@ const BitcoinTracker = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {/* Enhanced Bitcoin Chart with 3D effects */}
             <div className="h-[250px] w-full mb-4 bg-gradient-to-b from-transparent to-blue-50/5 dark:to-blue-900/5 rounded-xl overflow-hidden">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
@@ -198,7 +192,6 @@ const BitcoinTracker = () => {
               </ResponsiveContainer>
             </div>
             
-            {/* Responsive Crypto Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {isLoading ? (
                 Array(4).fill(0).map((_, index) => (
@@ -222,7 +215,6 @@ const BitcoinTracker = () => {
                     whileHover="hover"
                     variants={cardVariants}
                   >
-                    {/* 3D-like gradient overlay for depth */}
                     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
                     
                     <div className="flex justify-between items-start mb-1">
