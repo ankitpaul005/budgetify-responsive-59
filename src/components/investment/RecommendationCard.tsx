@@ -1,54 +1,71 @@
 
 import React from "react";
-import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/utils/formatting";
 import { toast } from "sonner";
+import { formatCurrency } from "@/utils/formatting";
 import { InvestmentRecommendation } from "@/utils/investmentRecommendationUtils";
+import { ArrowUpRight, Zap, ArrowRightCircle } from "lucide-react";
 
 interface RecommendationCardProps {
   recommendation: InvestmentRecommendation;
+  currency?: string; // Add currency prop
 }
 
-const RecommendationCard: React.FC<RecommendationCardProps> = ({ recommendation }) => {
+const RecommendationCard: React.FC<RecommendationCardProps> = ({ 
+  recommendation, 
+  currency = "INR" // Default to INR
+}) => {
   return (
-    <div className="border border-border rounded-lg p-3 sm:p-4 hover:bg-muted/40 transition-colors">
-      <div className="flex justify-between items-start mb-2 sm:mb-3">
-        <h3 className="font-medium text-base sm:text-lg">{recommendation.name}</h3>
-        <div className="rounded-full bg-primary/10 text-primary text-xs px-2 py-1">
-          {recommendation.percentage}%
+    <div className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <h3 className="font-medium text-lg">{recommendation.name}</h3>
+          <p className="text-xs text-muted-foreground">{recommendation.description}</p>
+        </div>
+        <div className={`text-xs px-2 py-1 rounded-full flex items-center ${
+          recommendation.priority === 'High' 
+            ? 'bg-budget-red-light text-budget-red' 
+            : recommendation.priority === 'Medium'
+            ? 'bg-budget-yellow-light text-budget-yellow'
+            : 'bg-budget-green-light text-budget-green'
+        }`}>
+          <Zap className="h-3 w-3 mr-1" />
+          {recommendation.priority} Priority
         </div>
       </div>
       
-      <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 line-clamp-2">
-        {recommendation.description}
-      </p>
+      <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
+        <div>
+          <p className="text-muted-foreground text-xs">Allocation</p>
+          <p className="font-medium">{formatCurrency(recommendation.allocation, currency)}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-muted-foreground text-xs">Percentage</p>
+          <p className="font-medium">{recommendation.percentage}%</p>
+        </div>
+        <div>
+          <p className="text-muted-foreground text-xs">Risk Level</p>
+          <p className="font-medium">{recommendation.riskLevel}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-muted-foreground text-xs">Expected Return</p>
+          <p className="font-medium text-budget-green">{recommendation.returnRate}</p>
+        </div>
+      </div>
       
-      <div className="space-y-1.5 sm:space-y-2 mb-3">
-        <div className="flex justify-between text-xs sm:text-sm">
-          <span>Recommended Amount:</span>
-          <span className="font-medium">{formatCurrency(recommendation.allocation)}</span>
-        </div>
-        <div className="flex justify-between text-xs sm:text-sm">
-          <span>Risk Level:</span>
-          <span className="font-medium">{recommendation.riskLevel}</span>
-        </div>
-        <div className="flex justify-between text-xs sm:text-sm">
-          <span>Expected Return:</span>
-          <span className="font-medium text-budget-green">{recommendation.returnRate}</span>
-        </div>
-        <div className="flex justify-between text-xs sm:text-sm">
-          <span>Suggested Instrument:</span>
-          <span className="font-medium">{recommendation.instrument}</span>
-        </div>
+      <div className="text-xs mb-4">
+        <p className="text-muted-foreground">Suggested Instrument</p>
+        <p className="font-medium">{recommendation.instrument}</p>
       </div>
       
       <Button 
-        variant="ghost" 
-        className="w-full gap-2 mt-2 text-xs sm:text-sm py-1.5 sm:py-2 h-auto"
-        onClick={() => toast.info(`Investment in ${recommendation.name} coming soon!`)}
+        variant="outline" 
+        size="sm" 
+        className="mt-auto gap-1 w-full"
+        onClick={() => toast.info(`Investment in ${recommendation.name} will be added soon!`)}
       >
-        Invest Now <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
+        <span>Invest Now</span>
+        <ArrowRightCircle className="h-3 w-3" />
       </Button>
     </div>
   );

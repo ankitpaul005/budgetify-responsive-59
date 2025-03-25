@@ -1,15 +1,17 @@
 
 import React from "react";
-import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
-import { TrendingUp, Percent, Info } from "lucide-react";
+import { TrendingUp, TrendingDown, BarChart3, ChevronDown } from "lucide-react";
 import { formatCurrency, formatPercent } from "@/utils/formatting";
+import { Investment } from "@/utils/mockData";
+import { Card } from "@/components/ui/card";
 
-interface InvestmentSummaryCardsProps {
+export interface InvestmentSummaryCardsProps {
   totalValue: number;
   totalGain: number;
   totalReturnPercent: number;
-  investments: any[];
+  investments: Investment[];
   projectedValue: number;
+  currency?: string; // Added currency prop
 }
 
 const InvestmentSummaryCards: React.FC<InvestmentSummaryCardsProps> = ({
@@ -18,84 +20,93 @@ const InvestmentSummaryCards: React.FC<InvestmentSummaryCardsProps> = ({
   totalReturnPercent,
   investments,
   projectedValue,
+  currency = "INR", // Default to INR
 }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <GlassmorphicCard className="relative overflow-hidden">
-        <div className="absolute top-2 right-2 bg-budget-blue-light text-budget-blue rounded-full p-2">
-          <TrendingUp className="w-5 h-5" />
-        </div>
-        <h3 className="text-lg font-medium text-muted-foreground mb-2">
-          Total Portfolio Value
-        </h3>
-        {investments.length > 0 ? (
-          <p className="text-3xl font-bold mb-1">{formatCurrency(totalValue)}</p>
-        ) : (
-          <div className="flex items-center py-2">
-            <Info className="w-4 h-4 text-muted-foreground mr-2" />
-            <p className="text-muted-foreground">No investments yet</p>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <Card className="p-4 border-l-4 border-l-budget-green">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Portfolio Value</p>
+            <h3 className="text-2xl font-bold">{formatCurrency(totalValue, currency)}</h3>
+            <p className="text-xs text-muted-foreground mt-1">{investments.length} investments</p>
           </div>
-        )}
-        <div className="flex items-center text-sm text-muted-foreground">
-          <span>Across {investments.length} investments</span>
+          <div className="bg-budget-green-light dark:bg-budget-green/20 p-2 rounded-full">
+            <BarChart3 className="h-5 w-5 text-budget-green" />
+          </div>
         </div>
-      </GlassmorphicCard>
+      </Card>
       
-      <GlassmorphicCard className="relative overflow-hidden">
-        <div className="absolute top-2 right-2 bg-budget-green-light text-budget-green rounded-full p-2">
-          <TrendingUp className="w-5 h-5" />
-        </div>
-        <h3 className="text-lg font-medium text-muted-foreground mb-2">
-          Total Gain/Loss
-        </h3>
-        {investments.length > 0 ? (
-          <p className={`text-3xl font-bold mb-1 ${
-            totalGain >= 0 ? "text-budget-green" : "text-budget-red"
+      <Card className="p-4 border-l-4 border-l-budget-blue">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Total Gain/Loss</p>
+            <h3 className="text-2xl font-bold">{formatCurrency(totalGain, currency)}</h3>
+            <p className={`text-xs flex items-center ${
+              totalReturnPercent >= 0 ? "text-budget-green" : "text-budget-red"
+            }`}>
+              {totalReturnPercent >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+              {formatPercent(totalReturnPercent)}
+            </p>
+          </div>
+          <div className={`p-2 rounded-full ${
+            totalGain >= 0 
+              ? "bg-budget-green-light dark:bg-budget-green/20" 
+              : "bg-budget-red-light dark:bg-budget-red/20"
           }`}>
-            {totalGain >= 0 ? "+" : ""}{formatCurrency(totalGain)}
-          </p>
-        ) : (
-          <div className="flex items-center py-2">
-            <Info className="w-4 h-4 text-muted-foreground mr-2" />
-            <p className="text-muted-foreground">Add investments to track gains</p>
+            {totalGain >= 0 
+              ? <TrendingUp className="h-5 w-5 text-budget-green" /> 
+              : <TrendingDown className="h-5 w-5 text-budget-red" />}
           </div>
-        )}
-        <div className="flex items-center text-sm">
-          {investments.length > 0 ? (
-            <>
-              <span className={totalReturnPercent >= 0 ? "text-budget-green" : "text-budget-red"}>
-                {totalReturnPercent >= 0 ? "+" : ""}
-                {formatPercent(totalReturnPercent)}
-              </span>
-              <span className="text-muted-foreground ml-1">Total return</span>
-            </>
-          ) : (
-            <span className="text-muted-foreground">Track your investment performance</span>
-          )}
         </div>
-      </GlassmorphicCard>
+      </Card>
       
-      <GlassmorphicCard className="relative overflow-hidden">
-        <div className="absolute top-2 right-2 bg-budget-yellow-light text-budget-yellow rounded-full p-2">
-          <Percent className="w-5 h-5" />
-        </div>
-        <h3 className="text-lg font-medium text-muted-foreground mb-2">
-          Projected Growth
-        </h3>
-        {projectedValue > 0 ? (
-          <p className="text-3xl font-bold mb-1">
-            {formatCurrency(projectedValue)}
-          </p>
-        ) : (
-          <div className="flex items-center py-2">
-            <Info className="w-4 h-4 text-muted-foreground mr-2" />
-            <p className="text-muted-foreground">Update income to see projections</p>
+      <Card className="p-4 border-l-4 border-l-budget-purple">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Projected Value (2Y)</p>
+            <h3 className="text-2xl font-bold">{formatCurrency(projectedValue, currency)}</h3>
+            <p className="text-xs text-budget-green flex items-center">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              {formatPercent((projectedValue - totalValue) / totalValue * 100)} growth
+            </p>
           </div>
-        )}
-        <div className="flex items-center text-sm text-muted-foreground">
-          <span>Estimated value in 2 years</span>
+          <div className="bg-budget-purple-light dark:bg-budget-purple/20 p-2 rounded-full">
+            <TrendingUp className="h-5 w-5 text-budget-purple" />
+          </div>
         </div>
-      </GlassmorphicCard>
+      </Card>
+      
+      <Card className="p-4 border-l-4 border-l-budget-yellow">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Top Performing</p>
+            {investments.length > 0 ? (
+              <>
+                <h3 className="text-xl font-medium">{
+                  investments
+                    .sort((a, b) => b.returnRate - a.returnRate)[0]?.name || "None"
+                }</h3>
+                <p className="text-xs text-budget-green flex items-center mt-1">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  {formatPercent(
+                    investments
+                      .sort((a, b) => b.returnRate - a.returnRate)[0]?.returnRate || 0
+                  )}
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-xl font-medium">No investments</h3>
+                <p className="text-xs text-muted-foreground mt-1">Add investments to track performance</p>
+              </>
+            )}
+          </div>
+          <div className="bg-budget-yellow-light dark:bg-budget-yellow/20 p-2 rounded-full">
+            <TrendingUp className="h-5 w-5 text-budget-yellow" />
+          </div>
+        </div>
+      </Card>
     </div>
   );
 };

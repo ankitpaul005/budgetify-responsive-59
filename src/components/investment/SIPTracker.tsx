@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 
 interface SIPFormData {
   name: string;
@@ -23,10 +22,23 @@ interface SIPFormData {
   frequency: string;
 }
 
+interface UserSIP {
+  id: string;
+  user_id: string;
+  name: string;
+  category: string;
+  amount: number;
+  frequency: string;
+  status: string;
+  total_invested: number;
+  current_value: number;
+  created_at?: string;
+}
+
 const SIPTracker = () => {
   const { user } = useAuth();
   const [sipData, setSipData] = useState<any[]>([]);
-  const [userSIPs, setUserSIPs] = useState<any[]>([]);
+  const [userSIPs, setUserSIPs] = useState<UserSIP[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("All");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -57,26 +69,37 @@ const SIPTracker = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch user SIPs from database
+  // Mock user SIPs instead of fetching from Supabase
   useEffect(() => {
-    const fetchUserSIPs = async () => {
-      if (!user) return;
+    if (!user) return;
 
-      try {
-        const { data, error } = await supabase
-          .from("sips")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-        setUserSIPs(data || []);
-      } catch (error) {
-        console.error("Error fetching user SIPs:", error);
+    // Mock data for user SIPs
+    const mockUserSIPs: UserSIP[] = [
+      {
+        id: "1",
+        user_id: user.id,
+        name: "HDFC Index Fund",
+        category: "Large Cap",
+        amount: 5000,
+        frequency: "Monthly",
+        status: "active",
+        total_invested: 60000,
+        current_value: 65200
+      },
+      {
+        id: "2",
+        user_id: user.id,
+        name: "SBI Small Cap Fund",
+        category: "Small Cap",
+        amount: 3000,
+        frequency: "Monthly",
+        status: "active",
+        total_invested: 36000,
+        current_value: 38900
       }
-    };
-
-    fetchUserSIPs();
+    ];
+    
+    setUserSIPs(mockUserSIPs);
   }, [user]);
 
   // Handle form input changes
@@ -109,7 +132,9 @@ const SIPTracker = () => {
     }
 
     try {
-      const newSIP = {
+      // Create new SIP (using mock data since we don't have a sips table)
+      const newSIP: UserSIP = {
+        id: Math.random().toString(36).substring(2, 11),
         user_id: user.id,
         name: formData.name,
         category: formData.category,
@@ -120,15 +145,8 @@ const SIPTracker = () => {
         current_value: amount
       };
 
-      const { data, error } = await supabase
-        .from("sips")
-        .insert([newSIP])
-        .select();
-
-      if (error) throw error;
-
       // Update local state
-      if (data) setUserSIPs(prev => [...data, ...prev]);
+      setUserSIPs(prev => [newSIP, ...prev]);
 
       toast.success("SIP investment created successfully!");
       setDialogOpen(false);

@@ -7,7 +7,6 @@ import useLocalStorage from "@/hooks/useLocalStorage";
 import { Investment, getInvestmentSuggestions } from "@/utils/mockData";
 import { generateGrowthData } from "@/utils/investmentUtils";
 import { ActivityTypes, logActivity } from "@/services/activityService";
-import { formatCurrency } from "@/utils/formatting";
 
 // Import refactored components
 import InvestmentSummaryCards from "@/components/investment/InvestmentSummaryCards";

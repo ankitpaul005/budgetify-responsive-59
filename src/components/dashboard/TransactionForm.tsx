@@ -174,7 +174,6 @@ const TransactionForm = ({ userId, onAddTransaction }) => {
               selected={date}
               onSelect={setDate}
               required
-              className="w-full"
             />
           </div>
 
