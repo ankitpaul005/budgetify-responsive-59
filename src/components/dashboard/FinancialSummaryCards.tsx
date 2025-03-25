@@ -33,15 +33,15 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
 }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-      <GlassmorphicCard className="relative overflow-hidden transition-all hover:shadow-md p-4">
-        <div className="absolute top-3 right-3 bg-budget-green-light text-budget-green rounded-full p-2.5">
+      <GlassmorphicCard className="relative overflow-hidden transition-all hover:shadow-lg p-4 bg-gradient-to-br from-teal-50 to-blue-50 dark:from-gray-800 dark:to-slate-900 border-t border-l border-white/20 dark:border-white/5">
+        <div className="absolute top-3 right-3 bg-gradient-to-r from-budget-green-light to-teal-100 text-budget-green rounded-full p-2.5 shadow-md">
           <Wallet className="w-5 h-5" />
         </div>
         <h3 className="text-lg font-medium text-muted-foreground mb-3">
           Current Balance
         </h3>
         {userIncome !== undefined ? (
-          <p className="text-3xl md:text-4xl font-bold mb-2">
+          <p className="text-3xl md:text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-budget-green to-teal-500">
             {formatCurrency(balance)}
           </p>
         ) : (
@@ -55,11 +55,11 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
         </div>
       </GlassmorphicCard>
       
-      <GlassmorphicCard className="relative overflow-hidden transition-all hover:shadow-md p-4">
+      <GlassmorphicCard className="relative overflow-hidden transition-all hover:shadow-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-indigo-950 border-t border-l border-white/20 dark:border-white/5">
         <div className="absolute top-3 right-3 flex gap-2">
           <Dialog open={incomeDialogOpen} onOpenChange={setIncomeDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="icon" variant="ghost" className="h-10 w-10 bg-budget-blue-light text-budget-blue rounded-full p-2.5">
+              <Button size="icon" variant="ghost" className="h-10 w-10 bg-gradient-to-r from-budget-blue-light to-blue-100 text-budget-blue rounded-full p-2.5 shadow-md">
                 <Edit className="w-5 h-5" />
               </Button>
             </DialogTrigger>
@@ -92,7 +92,7 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          <div className="bg-budget-blue-light text-budget-blue rounded-full p-2.5">
+          <div className="bg-gradient-to-r from-budget-blue-light to-blue-100 text-budget-blue rounded-full p-2.5 shadow-md">
             <CircleDollarSign className="w-5 h-5" />
           </div>
         </div>
@@ -100,7 +100,7 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
           Total Income
         </h3>
         {userIncome !== undefined && userIncome > 0 ? (
-          <p className="text-3xl md:text-4xl font-bold mb-2">
+          <p className="text-3xl md:text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-budget-blue to-blue-600">
             {formatCurrency(userIncome)}
           </p>
         ) : (
@@ -114,15 +114,15 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
         </div>
       </GlassmorphicCard>
       
-      <GlassmorphicCard className="relative overflow-hidden transition-all hover:shadow-md p-4">
-        <div className="absolute top-3 right-3 bg-budget-red-light text-budget-red rounded-full p-2.5">
+      <GlassmorphicCard className="relative overflow-hidden transition-all hover:shadow-lg p-4 bg-gradient-to-br from-red-50 to-orange-50 dark:from-gray-800 dark:to-red-950 border-t border-l border-white/20 dark:border-white/5">
+        <div className="absolute top-3 right-3 bg-gradient-to-r from-budget-red-light to-red-100 text-budget-red rounded-full p-2.5 shadow-md">
           <CreditCard className="w-5 h-5" />
         </div>
         <h3 className="text-lg font-medium text-muted-foreground mb-3">
           Total Expenses
         </h3>
         {expenses > 0 || hasTransactions ? (
-          <p className="text-3xl md:text-4xl font-bold mb-2">
+          <p className="text-3xl md:text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-budget-red to-red-600">
             {formatCurrency(expenses)}
           </p>
         ) : (

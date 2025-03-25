@@ -13,9 +13,15 @@ import RecentTransactions from "@/components/dashboard/RecentTransactions";
 import { supabase } from "@/integrations/supabase/client";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { ActivityTypes, logActivity } from "@/services/activityService";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, Phone } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 const Dashboard = () => {
-  const { isAuthenticated, user, userProfile, updateUserIncome } = useAuth();
+  const { isAuthenticated, user, userProfile, updateUserIncome, resetUserData, updateUserPhoneNumber } = useAuth();
   const navigate = useNavigate();
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -29,8 +35,11 @@ const Dashboard = () => {
   );
   
   const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
+  const [phoneDialogOpen, setPhoneDialogOpen] = useState(false);
   const [newIncome, setNewIncome] = useState(userProfile?.totalIncome?.toString() || "");
+  const [phoneNumber, setPhoneNumber] = useState(userProfile?.phone_number || "");
   const [isLoading, setIsLoading] = useState(true);
+  const [isResetting, setIsResetting] = useState(false);
   
   // Fetch transactions when user logs in
   useEffect(() => {
@@ -51,6 +60,9 @@ const Dashboard = () => {
     console.log("Dashboard: User profile updated:", userProfile);
     if (userProfile?.totalIncome) {
       setNewIncome(userProfile.totalIncome.toString());
+    }
+    if (userProfile?.phone_number) {
+      setPhoneNumber(userProfile.phone_number);
     }
   }, [userProfile]);
   
@@ -104,14 +116,38 @@ const Dashboard = () => {
     
     try {
       await updateUserIncome(income);
-      
-      // Activity logging is now handled in the updateUserIncome function
-      
       toast.success("Income updated successfully");
       setIncomeDialogOpen(false);
     } catch (error) {
       console.error("Error updating income:", error);
       toast.error("Failed to update income");
+    }
+  };
+  
+  const handleUpdatePhoneNumber = async () => {
+    if (!phoneNumber || phoneNumber.length < 10) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
+    
+    try {
+      await updateUserPhoneNumber(phoneNumber);
+      setPhoneDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating phone number:", error);
+      toast.error("Failed to update phone number");
+    }
+  };
+  
+  const handleResetData = async () => {
+    try {
+      setIsResetting(true);
+      await resetUserData();
+      await fetchTransactions(); // Refresh data after reset
+    } catch (error) {
+      console.error("Error resetting data:", error);
+    } finally {
+      setIsResetting(false);
     }
   };
   
@@ -133,44 +169,119 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto text-left">
-        <h1 className="text-3xl font-bold mb-6">
-          Welcome back, {userProfile?.name || user?.email || "User"}
-        </h1>
-        
-        <FinancialSummaryCards
-          balance={summary.balance}
-          userIncome={userProfile?.totalIncome}
-          expenses={summary.expenses}
-          incomeDialogOpen={incomeDialogOpen}
-          setIncomeDialogOpen={setIncomeDialogOpen}
-          newIncome={newIncome}
-          setNewIncome={setNewIncome}
-          handleUpdateIncome={handleUpdateIncome}
-          hasTransactions={transactions.length > 0}
-        />
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <DashboardCharts
-              transactions={transactions}
-              categories={categories}
-              budget={budget}
-              userIncome={userProfile?.totalIncome}
-              COLORS={COLORS}
-            />
+      <div className="max-w-7xl mx-auto text-left relative overflow-hidden">
+        {/* Animated background */}
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-teal-50 dark:from-gray-900 dark:to-gray-800"></div>
+          <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-blue-100 to-transparent dark:from-blue-900/20 dark:to-transparent"></div>
+          <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-gradient-to-br from-purple-100 to-transparent opacity-50 blur-3xl dark:from-purple-900/30"></div>
+          <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-gradient-to-br from-teal-100 to-transparent opacity-50 blur-3xl dark:from-teal-900/30"></div>
+        </div>
+
+        <div className="relative z-10">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-budget-blue to-budget-green">
+              Welcome back, {userProfile?.name || user?.email || "User"}
+            </h1>
+            
+            <div className="flex gap-2">
+              <Dialog open={phoneDialogOpen} onOpenChange={setPhoneDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="gap-2">
+                    <Phone className="h-4 w-4" />
+                    <span className="hidden sm:inline">Set Phone for 2FA</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Update Phone Number</DialogTitle>
+                    <DialogDescription>
+                      Add your phone number for two-factor authentication
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        placeholder="Enter your phone number"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      onClick={handleUpdatePhoneNumber}
+                      className="bg-budget-blue hover:bg-budget-blue/90"
+                    >
+                      Save Phone Number
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" className="gap-2" disabled={isResetting}>
+                    <RefreshCw className={`h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">Reset Data</span>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reset Financial Data?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will delete all your transactions and reset your financial data.
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleResetData}>
+                      Reset Data
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
           
-          <div className="space-y-8">
-            <TransactionForm 
-              userId={user?.id}
-              onAddTransaction={handleAddTransaction}
-            />
+          <FinancialSummaryCards
+            balance={summary.balance}
+            userIncome={userProfile?.totalIncome}
+            expenses={summary.expenses}
+            incomeDialogOpen={incomeDialogOpen}
+            setIncomeDialogOpen={setIncomeDialogOpen}
+            newIncome={newIncome}
+            setNewIncome={setNewIncome}
+            handleUpdateIncome={handleUpdateIncome}
+            hasTransactions={transactions.length > 0}
+          />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              <DashboardCharts
+                transactions={transactions}
+                categories={categories}
+                budget={budget}
+                userIncome={userProfile?.totalIncome}
+                COLORS={COLORS}
+              />
+            </div>
             
-            <RecentTransactions
-              transactions={transactions}
-              categories={categories}
-            />
+            <div className="space-y-8">
+              <TransactionForm 
+                userId={user?.id}
+                onAddTransaction={handleAddTransaction}
+              />
+              
+              <RecentTransactions
+                transactions={transactions}
+                categories={categories}
+              />
+            </div>
           </div>
         </div>
       </div>

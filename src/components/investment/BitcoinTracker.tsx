@@ -1,157 +1,147 @@
 
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { StockData } from "@/services/stockService";
+import React, { useState, useEffect } from "react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { ExternalLink } from "lucide-react";
 import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Bitcoin, ArrowUpRight, ArrowDownRight, Clock } from "lucide-react";
-import { toast } from "sonner";
-import { formatCurrency, formatPercent } from "@/utils/formatting";
-import { useAuth } from "@/context/AuthContext";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { fetchStockData } from "@/services/stockService";
+import { formatCurrency } from "@/utils/formatting";
 
-// Mock function to fetch crypto data
-const fetchCryptoData = async (): Promise<StockData[]> => {
-  // In a real implementation, this would call an API
-  // For now, we'll return mock data
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        {
-          symbol: "BTC-USD",
-          name: "Bitcoin",
-          price: 66500,
-          change: 1250,
-          changePercent: 1.92,
-          volume: 28500000000,
-          marketCap: 1308000000000,
-          pe: 0,
-          eps: 0,
-          high52: 73750,
-          low52: 24950,
-        },
-        {
-          symbol: "ETH-USD",
-          name: "Ethereum",
-          price: 3490,
-          change: 45,
-          changePercent: 1.31,
-          volume: 14700000000,
-          marketCap: 419000000000,
-          pe: 0,
-          eps: 0,
-          high52: 4090,
-          low52: 1560,
-        },
-        {
-          symbol: "SOL-USD",
-          name: "Solana",
-          price: 142,
-          change: -3.5,
-          changePercent: -2.4,
-          volume: 2800000000,
-          marketCap: 61000000000,
-          pe: 0,
-          eps: 0,
-          high52: 188,
-          low52: 18.5,
-        },
-        {
-          symbol: "XRP-USD",
-          name: "XRP",
-          price: 0.58,
-          change: 0.015,
-          changePercent: 2.65,
-          volume: 1540000000,
-          marketCap: 32000000000,
-          pe: 0,
-          eps: 0,
-          high52: 0.95,
-          low52: 0.42,
-        },
-      ]);
-    }, 800);
-  });
-};
-
-const BitcoinTracker: React.FC = () => {
-  const { userProfile } = useAuth();
-  const currency = userProfile?.currency || "INR";
+const BitcoinTracker = () => {
+  const [cryptoData, setCryptoData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const { data: cryptoData, isLoading, error } = useQuery({
-    queryKey: ["cryptoData"],
-    queryFn: fetchCryptoData,
-    refetchInterval: 10000, // Refresh every 10 seconds
-  });
+  useEffect(() => {
+    const fetchCryptoPrices = async () => {
+      try {
+        // Using the stock service but with crypto symbols
+        const data = await fetchStockData(['BTC-USD', 'ETH-USD', 'SOL-USD', 'DOGE-USD']);
+        setCryptoData(data);
+      } catch (error) {
+        console.error("Error fetching crypto data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchCryptoPrices();
+    
+    // Set up interval for refreshing data every 10 seconds
+    const interval = setInterval(fetchCryptoPrices, 10000);
+    
+    return () => clearInterval(interval);
+  }, []);
   
-  React.useEffect(() => {
-    if (error) {
-      toast.error("Failed to fetch cryptocurrency data");
-      console.error("Crypto data error:", error);
+  // Generate simple chart data
+  const getBTCChartData = () => {
+    // Generate fake historical data for demonstration
+    const now = new Date();
+    const data = [];
+    
+    for (let i = 30; i >= 0; i--) {
+      const time = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const baseValue = 60000; // Base BTC value
+      const randomFactor = Math.random() * 0.2 - 0.1; // -10% to +10%
+      
+      data.push({
+        date: time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        price: baseValue + baseValue * randomFactor
+      });
     }
-  }, [error]);
+    
+    return data;
+  };
+  
+  const chartData = getBTCChartData();
 
   return (
-    <GlassmorphicCard className="mb-8">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <Bitcoin className="h-5 w-5 text-budget-yellow" />
-          Cryptocurrency Tracker
-        </CardTitle>
-        <CardDescription>
-          Real-time prices and trends for popular cryptocurrencies
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-muted/30 rounded-lg p-4 border border-border">
-                <Skeleton className="h-5 w-24 mb-2" />
-                <Skeleton className="h-8 w-32 mb-3" />
-                <Skeleton className="h-4 w-20" />
-              </div>
-            ))}
+    <div className="mb-8">
+      <GlassmorphicCard>
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-amber-500">₿</span> Cryptocurrency Tracker
+              </CardTitle>
+              <CardDescription>
+                Track major cryptocurrencies in real-time
+              </CardDescription>
+            </div>
+            <Button size="sm" variant="ghost" asChild className="gap-1">
+              <a href="https://coinmarketcap.com/" target="_blank" rel="noopener noreferrer">
+                <span className="hidden sm:inline">View More</span>
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
           </div>
-        ) : cryptoData ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {cryptoData.map((crypto) => (
-              <div key={crypto.symbol} className="bg-muted/30 rounded-lg p-4 border border-border hover:bg-muted/50 transition-colors">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{crypto.name}</p>
-                    <p className="text-2xl font-bold mt-1">{formatCurrency(crypto.price, currency)}</p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {/* Bitcoin Chart */}
+            <div className="h-48 w-full mb-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 12 }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => value.substring(0, 3)}
+                    interval={6}
+                  />
+                  <YAxis 
+                    hide 
+                    domain={['dataMin - 2000', 'dataMax + 2000']}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [formatCurrency(Number(value)), "Price"]}
+                    labelFormatter={(label) => `Date: ${label}`}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="price" 
+                    stroke="#F7931A" 
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            
+            {/* Crypto Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              {isLoading ? (
+                Array(4).fill(0).map((_, index) => (
+                  <div key={index} className="border border-border rounded-lg p-4 animate-pulse">
+                    <div className="h-5 w-20 bg-muted rounded mb-2"></div>
+                    <div className="h-7 w-28 bg-muted rounded mb-1.5"></div>
+                    <div className="h-4 w-16 bg-muted rounded"></div>
                   </div>
-                  <div className={`flex items-center px-2 py-1 rounded-full text-xs ${
-                    crypto.changePercent >= 0 ? "bg-budget-green/10 text-budget-green" : "bg-budget-red/10 text-budget-red"
-                  }`}>
-                    {crypto.changePercent >= 0 ? (
-                      <ArrowUpRight className="h-3 w-3 mr-1" />
-                    ) : (
-                      <ArrowDownRight className="h-3 w-3 mr-1" />
-                    )}
-                    {formatPercent(crypto.changePercent)}
+                ))
+              ) : (
+                cryptoData.map((crypto, index) => (
+                  <div key={index} className="border border-border rounded-lg p-4 hover:bg-muted/40 transition-colors">
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="font-medium">{crypto.symbol.split('-')[0]}</h3>
+                      <div className={`text-xs px-1.5 py-0.5 rounded ${
+                        crypto.changePercent >= 0 ? 'bg-budget-green-light text-budget-green' : 'bg-budget-red-light text-budget-red'
+                      }`}>
+                        {crypto.changePercent >= 0 ? '+' : ''}{crypto.changePercent.toFixed(2)}%
+                      </div>
+                    </div>
+                    <p className="text-xl font-bold">{formatCurrency(crypto.price)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Volume: {(crypto.volume / 1000000).toFixed(2)}M
+                    </p>
                   </div>
-                </div>
-                <div className="flex justify-between items-center mt-4 text-xs text-muted-foreground">
-                  <div className="flex items-center">
-                    <Clock className="h-3 w-3 mr-1" />
-                    <span>Live</span>
-                  </div>
-                  <div>Vol: {formatCurrency(crypto.volume / 1000000000, "USD")}B</div>
-                </div>
-              </div>
-            ))}
+                ))
+              )}
+            </div>
           </div>
-        ) : (
-          <div className="text-center py-8">
-            <p>No cryptocurrency data available</p>
-            <Button variant="outline" className="mt-4">Refresh Data</Button>
-          </div>
-        )}
-      </CardContent>
-    </GlassmorphicCard>
+        </CardContent>
+      </GlassmorphicCard>
+    </div>
   );
 };
 
