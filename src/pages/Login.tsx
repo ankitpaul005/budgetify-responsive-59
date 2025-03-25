@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { FiUser, FiLock, FiLoader } from "lucide-react";
+import { User, Lock, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,7 +56,7 @@ const LoginPage = () => {
               <Label htmlFor="email">Email</Label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiUser className="h-5 w-5 text-gray-400" />
+                  <User className="h-5 w-5 text-gray-400" />
                 </div>
                 <Input
                   id="email"
@@ -76,7 +76,7 @@ const LoginPage = () => {
               <Label htmlFor="password">Password</Label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLock className="h-5 w-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-gray-400" />
                 </div>
                 <Input
                   id="password"
@@ -101,7 +101,7 @@ const LoginPage = () => {
             >
               {isLoading ? (
                 <>
-                  <FiLoader className="animate-spin mr-2" />
+                  <Loader className="animate-spin mr-2" />
                   Signing in...
                 </>
               ) : (
