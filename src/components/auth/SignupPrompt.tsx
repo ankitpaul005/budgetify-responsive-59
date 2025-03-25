@@ -11,17 +11,20 @@ const SignupPrompt: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Only show prompt if user is not authenticated and hasn't seen it recently
     const hasSeenPrompt = localStorage.getItem("budgetify-signup-prompt");
     const currentPath = window.location.pathname;
     
-    // Skip prompt for login/signup pages
+    // Don't show prompt on login/signup pages or if already authenticated
     if (
       !isAuthenticated &&
       !hasSeenPrompt &&
       currentPath !== "/login" && 
-      currentPath !== "/signup"
+      currentPath !== "/signup" &&
+      // Don't show on initial page load to prevent jarring experience
+      currentPath !== "/"
     ) {
-      // Small delay to ensure the page loads first
+      // Delayed prompt for better UX
       const timer = setTimeout(() => {
         setOpen(true);
         // Set a 24-hour expiration for the prompt
@@ -29,7 +32,7 @@ const SignupPrompt: React.FC = () => {
           "budgetify-signup-prompt", 
           (Date.now() + 24 * 60 * 60 * 1000).toString()
         );
-      }, 1000);
+      }, 5000); // Show after 5 seconds instead of 1 second
       
       return () => clearTimeout(timer);
     } else if (hasSeenPrompt) {
