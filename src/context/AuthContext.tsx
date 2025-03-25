@@ -1,294 +1,237 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+
+import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
+import { supabase } from "../integrations/supabase/client";
+import { Session, User, SupabaseClient } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
-import { ActivityTypes, logActivity } from "@/services/activityService";
 
-// Define user types
-export type UserProfile = {
+// Define types for the user profile
+interface UserProfile {
   id: string;
-  name: string;
-  email: string;
-  totalIncome: number;
-};
+  name?: string;
+  totalIncome?: number;
+  currency?: string; // Add currency to user profile
+}
 
-// Define auth context type
-type AuthContextType = {
+// Auth context type definition
+interface AuthContextType {
+  isAuthenticated: boolean;
   user: User | null;
   userProfile: UserProfile | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
+  session: Session | null;
+  supabase: SupabaseClient;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   signOut: () => Promise<void>;
-  isAuthenticated: boolean;
-  updateUserIncome: (income: number) => Promise<void>;
-  updateProfile: (data: {name: string, totalIncome: number}) => Promise<void>;
-  session: Session | null;
-};
+  signup: (email: string, password: string) => Promise<void>;
+  loading: boolean;
+  updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
+}
 
-// Create context with default values
-const AuthContext = createContext<AuthContextType>({
+// Create the auth context
+export const AuthContext = createContext<AuthContextType>({
+  isAuthenticated: false,
   user: null,
   userProfile: null,
-  loading: true,
-  login: async () => false,
-  signup: async () => false,
+  session: null,
+  supabase,
+  login: async () => {},
   logout: async () => {},
   signOut: async () => {},
-  isAuthenticated: false,
-  updateUserIncome: async () => {},
+  signup: async () => {},
+  loading: true,
   updateProfile: async () => {},
-  session: null,
 });
 
-// Auth provider component
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Create the auth provider
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Initialize auth state
+  // Initialize Supabase auth
   useEffect(() => {
-    console.log("Auth provider initializing...");
-    
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth state changed:", event, session?.user?.id);
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          await fetchUserProfile(session.user.id);
-        } else {
-          setUserProfile(null);
-        }
-      }
-    );
+    const initializeAuth = async () => {
+      try {
+        // Get current session
+        const { data: currentSession } = await supabase.auth.getSession();
+        setSession(currentSession.session);
+        setUser(currentSession.session?.user || null);
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("Initial session check:", session?.user?.id);
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserProfile(session.user.id);
-      } else {
+        // Set up auth state change listener
+        const { data: authListener } = supabase.auth.onAuthStateChange(
+          async (event, updatedSession) => {
+            setSession(updatedSession);
+            setUser(updatedSession?.user || null);
+          }
+        );
+
+        setLoading(false);
+
+        return () => {
+          authListener?.subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error("Error initializing auth:", error);
         setLoading(false);
       }
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    initializeAuth();
   }, []);
 
-  // Fetch user profile from the database
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      console.log("Fetching user profile for:", userId);
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
+  // Fetch user profile whenever user changes
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single();
 
-      if (error) {
-        console.error("Error fetching user profile:", error);
-        setLoading(false);
-        return;
-      }
+          if (error) {
+            console.error("Error fetching user profile:", error);
+            return;
+          }
 
-      if (data) {
-        console.log("User profile fetched:", data);
-        setUserProfile({
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          totalIncome: Number(data.total_income) || 0,
-        });
+          setUserProfile(data as UserProfile);
+        } catch (error) {
+          console.error("Error in profile fetch:", error);
+        }
+      } else {
+        setUserProfile(null);
       }
-      setLoading(false);
-    } catch (error) {
-      console.error("Failed to fetch user profile:", error);
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   // Login function
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
-
-      setUser(data.user);
-      setSession(data.session);
-      
-      // Log login activity
-      if (data.user) {
-        logActivity(data.user.id, ActivityTypes.LOGIN, "User logged in");
-      }
-      
-      return !!data.user;
-    } catch (error) {
-      console.error("Error logging in:", error);
-      return false;
-    }
-  };
-
-  // Signup function
-  const signup = async (name: string, email: string, password: string): Promise<boolean> => {
-    setLoading(true);
-    
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name,
-          },
-        },
-      });
-      
       if (error) {
         toast.error(error.message);
-        setLoading(false);
-        return false;
+        throw error;
       }
-      
-      toast.success("Account created successfully!");
-      navigate("/dashboard");
-      return true;
-    } catch (error: any) {
-      console.error("Signup error:", error);
-      toast.error(error.message || "An error occurred during signup");
+
+      if (data?.user) {
+        toast.success("Logged in successfully!");
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
+    } finally {
       setLoading(false);
-      return false;
-    }
-  };
-
-  // Update user profile
-  const updateProfile = async (data: {name: string, totalIncome: number}) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({ 
-          name: data.name,
-          total_income: data.totalIncome,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-      
-      if (error) {
-        toast.error("Failed to update profile: " + error.message);
-        return;
-      }
-      
-      // Log activity
-      await logActivity(user.id, ActivityTypes.PROFILE_UPDATE, "Updated profile");
-      
-      // Update local state
-      setUserProfile(prev => prev ? { 
-        ...prev, 
-        name: data.name,
-        totalIncome: data.totalIncome 
-      } : null);
-      
-      toast.success("Profile updated successfully!");
-    } catch (error: any) {
-      console.error("Error updating profile:", error);
-      toast.error("Failed to update profile: " + error.message);
-    }
-  };
-
-  // Update user income
-  const updateUserIncome = async (income: number) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({ 
-          total_income: income,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-      
-      if (error) {
-        toast.error("Failed to update income: " + error.message);
-        return;
-      }
-      
-      // Log activity
-      await logActivity(user.id, ActivityTypes.PROFILE_UPDATE, "Updated income to " + income);
-      
-      // Update local state
-      setUserProfile(prev => prev ? { ...prev, totalIncome: income } : null);
-      toast.success("Income updated successfully!");
-    } catch (error: any) {
-      console.error("Error updating income:", error);
-      toast.error("Failed to update income: " + error.message);
     }
   };
 
   // Logout function
   const logout = async () => {
     try {
-      // Log logout activity before actually logging out
-      if (user) {
-        await logActivity(user.id, ActivityTypes.LOGOUT, "User logged out");
+      setLoading(true);
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        toast.error("Error signing out");
+        throw error;
       }
       
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
-      // Clear local state
-      setUser(null);
-      setSession(null);
-      setUserProfile(null);
-      
-      // Navigate to login page after state is cleared
       toast.success("Logged out successfully");
-      setTimeout(() => navigate("/login"), 100);
+      navigate("/login");
     } catch (error) {
-      console.error("Error logging out:", error);
-      toast.error("Failed to logout. Please try again.");
+      console.error("Logout error:", error);
+      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Add signOut as an alias for logout for consistency
-  const signOut = logout;
+  // SignOut alias for logout (to maintain compatibility)
+  const signOut = async () => {
+    return logout();
+  };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        userProfile,
-        loading,
-        login,
-        signup,
-        logout,
-        signOut,
-        isAuthenticated: !!user,
-        updateUserIncome,
-        updateProfile,
-        session,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  // Signup function
+  const signup = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        throw error;
+      }
+
+      toast.success("Account created successfully! Please check your email for verification.");
+      navigate("/login");
+    } catch (error) {
+      console.error("Signup error:", error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update user profile
+  const updateProfile = async (profile: Partial<UserProfile>) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update(profile)
+        .eq("id", user.id);
+
+      if (error) {
+        toast.error("Failed to update profile");
+        throw error;
+      }
+
+      // Update the local state
+      setUserProfile(prev => prev ? { ...prev, ...profile } : null);
+      
+    } catch (error) {
+      console.error("Profile update error:", error);
+      throw error;
+    }
+  };
+
+  const value = {
+    isAuthenticated: !!user,
+    user,
+    userProfile,
+    session,
+    supabase,
+    login,
+    logout,
+    signOut,
+    signup,
+    loading,
+    updateProfile,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook to use auth context
-export const useAuth = () => useContext(AuthContext);
+// Custom hook to use the auth context
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import Layout from "@/components/Layout";
@@ -24,6 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ActivityTypes, logActivity } from "@/services/activityService";
+import { currencyRates, currencySymbols } from "@/utils/formatting";
 
 const SettingsPage = () => {
   const { isAuthenticated, user, userProfile, updateProfile, signOut } = useAuth();
@@ -32,6 +33,18 @@ const SettingsPage = () => {
   const [name, setName] = useState(userProfile?.name || "");
   const [email, setEmail] = useState(user?.email || "");
   const [income, setIncome] = useState(userProfile?.totalIncome?.toString() || "0");
+  const [currency, setCurrency] = useState(userProfile?.currency || "INR");
+  
+  // Update form when userProfile changes
+  useEffect(() => {
+    if (userProfile) {
+      setName(userProfile.name || "");
+      setCurrency(userProfile.currency || "INR");
+      if (userProfile.totalIncome) {
+        setIncome(userProfile.totalIncome.toString());
+      }
+    }
+  }, [userProfile]);
   
   // Notification settings
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -41,7 +54,6 @@ const SettingsPage = () => {
   const [investmentAlerts, setInvestmentAlerts] = useState(true);
   
   // Display settings
-  const [currency, setCurrency] = useState("USD");
   const [dateFormat, setDateFormat] = useState("MM/DD/YYYY");
   const [theme, setTheme] = useState("system");
   
@@ -49,7 +61,7 @@ const SettingsPage = () => {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [loginNotifications, setLoginNotifications] = useState(true);
   
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
     } else if (user) {
@@ -71,6 +83,7 @@ const SettingsPage = () => {
       await updateProfile({
         name,
         totalIncome: parseFloat(income),
+        currency: currency,
       });
       
       // Log profile update activity
@@ -204,6 +217,34 @@ const SettingsPage = () => {
                         onChange={(e) => setIncome(e.target.value)}
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="currency">Preferred Currency</Label>
+                      <Select value={currency} onValueChange={setCurrency}>
+                        <SelectTrigger id="currency">
+                          <SelectValue placeholder="Select currency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.keys(currencyRates).map((curr) => (
+                            <SelectItem key={curr} value={curr}>
+                              {currencySymbols[curr]} {curr} - {curr === "USD" ? "US Dollar" : 
+                                curr === "INR" ? "Indian Rupee" :
+                                curr === "EUR" ? "Euro" :
+                                curr === "GBP" ? "British Pound" :
+                                curr === "JPY" ? "Japanese Yen" :
+                                curr === "CAD" ? "Canadian Dollar" :
+                                curr === "AUD" ? "Australian Dollar" :
+                                curr === "SGD" ? "Singapore Dollar" :
+                                curr === "AED" ? "UAE Dirham" :
+                                curr === "CNY" ? "Chinese Yuan" : 
+                                curr === "BTC" ? "Bitcoin" : curr}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Current rate: 1 USD = {currencyRates[currency]} {currency}
+                      </p>
+                    </div>
                   </div>
                   
                   <Button type="submit">Save Profile</Button>
@@ -336,21 +377,6 @@ const SettingsPage = () => {
               <CardContent>
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="currency">Currency</Label>
-                      <Select value={currency} onValueChange={setCurrency}>
-                        <SelectTrigger id="currency">
-                          <SelectValue placeholder="Select currency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="USD">USD ($)</SelectItem>
-                          <SelectItem value="EUR">EUR (€)</SelectItem>
-                          <SelectItem value="GBP">GBP (£)</SelectItem>
-                          <SelectItem value="JPY">JPY (¥)</SelectItem>
-                          <SelectItem value="INR">INR (₹)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="dateFormat">Date Format</Label>
                       <Select value={dateFormat} onValueChange={setDateFormat}>

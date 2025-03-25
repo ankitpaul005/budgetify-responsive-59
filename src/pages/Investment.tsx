@@ -19,6 +19,7 @@ import InvestmentList from "@/components/investment/InvestmentList";
 import LiveStockTracker from "@/components/investment/LiveStockTracker";
 import AIInvestmentAdvisor from "@/components/investment/AIInvestmentAdvisor";
 import PortfolioRebalancer from "@/components/investment/PortfolioRebalancer";
+import BitcoinTracker from "@/components/investment/BitcoinTracker";
 
 const InvestmentPage = () => {
   const { isAuthenticated, user, userProfile } = useAuth();
@@ -97,6 +98,9 @@ const InvestmentPage = () => {
           investments={investments}
           projectedValue={growthData[growthData.length - 1]?.value || 0}
         />
+        
+        {/* Bitcoin Tracker */}
+        <BitcoinTracker />
         
         {/* Live Stock Tracker */}
         <LiveStockTracker />

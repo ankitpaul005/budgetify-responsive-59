@@ -10,17 +10,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatPercent } from "@/utils/formatting";
 import { toast } from "sonner";
 import StockDetailView from "./StockDetailView";
+import { useAuth } from "@/context/AuthContext";
 
-const popularStocks = ["AAPL", "GOOGL", "MSFT", "AMZN", "META", "TSLA", "NFLX", "NVDA"];
+// Add more popular stocks including Bitcoin (BTC-USD)
+const popularStocks = [
+  "AAPL", "GOOGL", "MSFT", "AMZN", "META", 
+  "TSLA", "NFLX", "NVDA", "BTC-USD", "ETH-USD", 
+  "RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "TATAMOTORS.NS"
+];
 
 const LiveStockTracker: React.FC = () => {
-  const [selectedStocks, setSelectedStocks] = useState(popularStocks.slice(0, 5));
+  const { userProfile } = useAuth();
+  const [selectedStocks, setSelectedStocks] = useState(popularStocks.slice(0, 8));
   const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
   
   const { data: stockData, isLoading, error, refetch } = useQuery({
     queryKey: ["stockData", selectedStocks],
     queryFn: () => fetchStockData(selectedStocks),
-    refetchInterval: 30000, // Refetch every 30 seconds for more live data
+    refetchInterval: 10000, // Refetch every 10 seconds for more live data
   });
   
   useEffect(() => {
@@ -103,7 +110,7 @@ const LiveStockTracker: React.FC = () => {
                   <p className="text-sm text-muted-foreground">{stock.name}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium">{formatCurrency(stock.price)}</p>
+                  <p className="font-medium">{formatCurrency(stock.price, userProfile?.currency || "INR")}</p>
                   <div className="flex items-center justify-end gap-1">
                     {stock.changePercent >= 0 ? (
                       <TrendingUp className="h-3 w-3 text-budget-green" />
