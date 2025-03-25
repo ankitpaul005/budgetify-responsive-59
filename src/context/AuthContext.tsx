@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useState,
@@ -19,6 +18,7 @@ import { Tables } from "@/integrations/supabase/types";
 // Define the types for user profile and auth context
 export interface UserProfile extends Tables<"users"> {
   currency?: string; // Add currency property
+  phone_number?: string; // Add phone_number property
 }
 
 interface AuthContextType {
