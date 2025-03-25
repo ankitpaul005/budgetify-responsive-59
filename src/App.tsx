@@ -20,6 +20,7 @@ import NotFoundPage from "./pages/NotFound";
 import ChatbotDialog from "./components/chat/ChatbotDialog";
 import VoiceCommandListener from "./components/voice/VoiceCommandListener";
 import SignupPrompt from "./components/auth/SignupPrompt";
+import Layout from "./components/Layout";
 
 // Create a client
 const queryClient = new QueryClient();

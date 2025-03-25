@@ -1,8 +1,8 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import ThemeToggle from "./ThemeToggle";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import ProfileMenu from "./navbar/ProfileMenu";
 import MobileMenuToggle from "./navbar/MobileMenuToggle";
 import DesktopNavLinks from "./navbar/DesktopNavLinks";
@@ -11,11 +11,16 @@ import NotificationManager from "./notifications/NotificationManager";
 const Navbar = () => {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Skip navbar on login/signup pages
   if (location.pathname === "/login" || location.pathname === "/signup") {
     return null;
   }
+  
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
   
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -33,7 +38,11 @@ const Navbar = () => {
             {isAuthenticated && <NotificationManager />}
             <ThemeToggle />
             <ProfileMenu />
-            <MobileMenuToggle isAuthenticated={isAuthenticated} />
+            <MobileMenuToggle 
+              isOpen={isMobileMenuOpen} 
+              isAuthenticated={isAuthenticated} 
+              toggleMenu={toggleMobileMenu} 
+            />
           </div>
         </div>
       </div>
