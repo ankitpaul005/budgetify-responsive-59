@@ -3,7 +3,7 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ProfileMenu from "./ProfileMenu";
-import ThemeToggle from "./ThemeToggle";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import { NavItem } from "./types";
 import NotificationManager from "../notifications/NotificationManager";
 
