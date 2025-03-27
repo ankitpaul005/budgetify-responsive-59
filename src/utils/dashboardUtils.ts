@@ -23,7 +23,7 @@ export const calculateSummary = (transactions: Transaction[], userIncome: number
   
   console.log("Current month transactions:", currentMonthTransactions.length);
   
-  // Calculate total expenses
+  // Calculate total expenses (including investment expenses)
   const expenses = currentMonthTransactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
@@ -51,4 +51,29 @@ export const calculateSummary = (transactions: Transaction[], userIncome: number
     balance,
     savingsRate,
   };
+};
+
+// Function to handle stock investments
+export const processStockInvestment = async (userId: string, symbol: string, quantity: number, price: number) => {
+  try {
+    // Create a new expense transaction for the stock purchase
+    const investmentAmount = quantity * price;
+    const investmentTransaction = {
+      user_id: userId,
+      description: `Investment in ${symbol} stock (${quantity} shares)`,
+      amount: investmentAmount,
+      category: "Investments",
+      type: "expense",
+      date: new Date().toISOString()
+    };
+    
+    // We'll return the transaction data for the caller to add to Supabase
+    return {
+      transaction: investmentTransaction,
+      amount: investmentAmount
+    };
+  } catch (error) {
+    console.error("Error processing stock investment:", error);
+    throw error;
+  }
 };

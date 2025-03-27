@@ -37,6 +37,8 @@ import { useAuth } from "@/context/AuthContext";
 import { ActivityTypes, logActivity } from "@/services/activityService";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { processStockInvestment } from "@/utils/dashboardUtils";
 
 interface StockDetailViewProps {
   stock: StockData;
@@ -52,6 +54,7 @@ const StockDetailView: React.FC<StockDetailViewProps> = ({ stock, onBack }) => {
     `budgetify-investments-${user?.id || "demo"}`,
     []
   );
+  const [isInvesting, setIsInvesting] = useState(false);
 
   // Fetch historical data
   const { data: historicalData, isLoading } = useQuery({
@@ -80,8 +83,14 @@ const StockDetailView: React.FC<StockDetailViewProps> = ({ stock, onBack }) => {
   const chartColor = isPositive ? "#10B981" : "#EF4444";
 
   // Handle investment
-  const handleInvest = () => {
+  const handleInvest = async () => {
+    if (!user?.id) {
+      toast.error("You must be logged in to invest");
+      return;
+    }
+    
     try {
+      setIsInvesting(true);
       const qty = parseInt(quantity);
       if (isNaN(qty) || qty <= 0) {
         toast.error("Please enter a valid quantity");
@@ -90,7 +99,23 @@ const StockDetailView: React.FC<StockDetailViewProps> = ({ stock, onBack }) => {
 
       const totalAmount = qty * stock.price;
 
-      // Create new investment
+      // Process the investment and create a transaction
+      const investmentResult = await processStockInvestment(
+        user.id,
+        stock.symbol,
+        qty,
+        stock.price
+      );
+      
+      // Add the transaction to the database
+      const { data: transactionData, error: transactionError } = await supabase
+        .from("transactions")
+        .insert([investmentResult.transaction])
+        .select();
+        
+      if (transactionError) throw transactionError;
+
+      // Create new investment for the portfolio
       const newInvestment = {
         id: uuidv4(),
         name: `${stock.symbol} Stock`,
@@ -119,10 +144,12 @@ const StockDetailView: React.FC<StockDetailViewProps> = ({ stock, onBack }) => {
       // Close dialog and notify
       setInvestmentDialog(false);
       setQuantity("1");
-      toast.success(`Successfully invested in ${stock.symbol}!`);
+      toast.success(`Successfully invested in ${stock.symbol}! The amount has been recorded as an expense.`);
     } catch (error) {
       console.error("Error investing:", error);
       toast.error("Failed to complete investment");
+    } finally {
+      setIsInvesting(false);
     }
   };
 
@@ -295,7 +322,9 @@ const StockDetailView: React.FC<StockDetailViewProps> = ({ stock, onBack }) => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInvestmentDialog(false)}>Cancel</Button>
-            <Button onClick={handleInvest}>Confirm Investment</Button>
+            <Button onClick={handleInvest} disabled={isInvesting}>
+              {isInvesting ? "Processing..." : "Confirm Investment"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
