@@ -15,10 +15,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tables } from "@/integrations/supabase/types";
 
-// Define the types for user profile and auth context
 export interface UserProfile extends Tables<"users"> {
-  currency?: string; // Add currency property
-  phone_number?: string; // Add phone_number property
+  currency?: string;
+  phone_number?: string;
 }
 
 interface AuthContextType {
@@ -42,14 +41,12 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-// Create the auth context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Create the auth provider component
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -58,16 +55,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
         console.log(`Auth event: ${event}`);
         
-        // Only synchronous state updates here
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Use setTimeout to avoid deadlocks
         if (session?.user) {
           setTimeout(() => {
             fetchUserProfile(session.user.id);
@@ -78,13 +72,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     );
 
-    // THEN check for existing session
     const initializeAuth = async () => {
       try {
         setIsLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
 
-        // Clear session if not on login or signup page to prevent auto-login
         const currentPath = window.location.pathname;
         if (session && !currentPath.includes("/login") && !currentPath.includes("/signup") && currentPath === "/") {
           await supabase.auth.signOut({ scope: "local" });
@@ -106,13 +98,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     initializeAuth();
 
-    // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  // Fetch user profile from the database
   const fetchUserProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -125,14 +115,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setUserProfile({
         ...data,
-        currency: "INR" // Default currency
+        currency: "INR"
       });
     } catch (error) {
       console.error("Error fetching user profile:", error);
     }
   };
 
-  // Sign up function
   const signup = async (email: string, password: string, name: string) => {
     try {
       setIsLoading(true);
@@ -148,7 +137,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) throw error;
 
-      // Create user profile in the database
       if (data.user?.id) {
         await createUserProfile(data.user.id, email, name);
       }
@@ -163,7 +151,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Create user profile in the database
   const createUserProfile = async (
     userId: string,
     email: string,
@@ -185,7 +172,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Login function
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
@@ -206,7 +192,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Logout function
   const logout = async () => {
     try {
       setIsLoading(true);
@@ -227,7 +212,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Update user profile function (alias for updateProfile)
   const updateUserProfile = async (displayName: string, phoneNumber: string) => {
     try {
       if (!user) {
@@ -235,14 +219,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
   
-      // Update auth metadata first
       const { error: authError } = await supabase.auth.updateUser({
         data: { name: displayName }
       });
-  
+
       if (authError) throw authError;
   
-      // Then update the public profile
       const { error } = await supabase.from("users").update({ 
         name: displayName
       }).eq("id", user.id);
@@ -261,7 +243,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Update user income function
   const updateUserIncome = async (income: number) => {
     try {
       if (!user) {
@@ -269,7 +250,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      // Update the public profile
+      if (isNaN(income) || income < 0 || income > 10000000) {
+        toast.error("Invalid income amount. Please enter a valid number.");
+        return;
+      }
+
+      console.log("Updating income to:", income);
+
       const { error } = await supabase
         .from("users")
         .update({ total_income: income })
@@ -290,7 +277,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Update user phone number (this would be stored in auth metadata in a real app)
   const updateUserPhoneNumber = async (phoneNumber: string) => {
     try {
       if (!user) {
@@ -298,11 +284,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      // In a real app, we would update the phone number in the database
-      // Here we'll just update it in the local state
       setUserProfile((prevProfile) => ({
         ...prevProfile,
-        phone_number: phoneNumber // This is just for UI display, not stored in DB
+        phone_number: phoneNumber
       }));
 
       toast.success("Phone number updated successfully");
@@ -313,7 +297,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Reset user data function with enhanced reset capabilities
   const resetUserData = async () => {
     try {
       if (!user) {
@@ -321,7 +304,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      // Delete user transactions
       const { error: transactionError } = await supabase
         .from("transactions")
         .delete()
@@ -329,7 +311,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (transactionError) throw transactionError;
 
-      // Reset user income to 0
       const { error: incomeError } = await supabase
         .from("users")
         .update({ total_income: 0 })
@@ -337,10 +318,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
       if (incomeError) throw incomeError;
       
-      // Update local profile state
       setUserProfile(prev => prev ? {...prev, total_income: 0} : null);
 
-      // Clear local storage data
       localStorage.removeItem(`budgetify-investments-${user.id}`);
       localStorage.removeItem(`budgetify-categories-${user.id}`);
       localStorage.removeItem(`budgetify-budget-${user.id}`);
@@ -353,7 +332,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Update full profile function
   const updateProfile = async (data: {
     name: string;
     total_income?: number;
@@ -365,22 +343,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      // Update auth metadata first
       const { error: authError } = await supabase.auth.updateUser({
         data: { name: data.name }
       });
 
       if (authError) throw authError;
 
-      // Prepare update data
       const updateData: any = { name: data.name };
       
-      // Add total_income if provided
       if (data.total_income !== undefined) {
         updateData.total_income = data.total_income;
       }
 
-      // Then update the public profile
       const { error } = await supabase
         .from("users")
         .update(updateData)
@@ -388,7 +362,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) throw error;
 
-      // Update local user profile
       setUserProfile((prevProfile) => ({
         ...prevProfile,
         name: data.name,
@@ -404,7 +377,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Sign out (alias for logout)
   const signOut = logout;
 
   const value: AuthContextType = {
@@ -427,7 +399,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Create a custom hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

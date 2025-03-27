@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -41,14 +40,12 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isResetting, setIsResetting] = useState(false);
   
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate("/login");
     }
   }, [isAuthenticated, isLoading, navigate]);
   
-  // Fetch transactions when user logs in
   useEffect(() => {
     console.log("Dashboard: Auth state:", isAuthenticated, user?.id);
     
@@ -57,7 +54,6 @@ const Dashboard = () => {
     }
   }, [user]);
   
-  // Update newIncome when userProfile changes
   useEffect(() => {
     console.log("Dashboard: User profile updated:", userProfile);
     if (userProfile?.total_income) {
@@ -87,7 +83,6 @@ const Dashboard = () => {
       
       console.log("Transactions fetched:", data);
       
-      // Transform the data to match our Transaction type
       const formattedTransactions: Transaction[] = data.map((item: any) => ({
         id: item.id,
         amount: Number(item.amount),
@@ -106,9 +101,6 @@ const Dashboard = () => {
     }
   };
   
-  // Calculate summary based on transactions and user income
-  const summary = calculateSummary(transactions, userProfile?.total_income || 0);
-  
   const handleUpdateIncome = async () => {
     const income = parseInt(newIncome);
     if (isNaN(income) || income < 0) {
@@ -117,6 +109,7 @@ const Dashboard = () => {
     }
     
     try {
+      console.log("Updating income to:", income);
       await updateUserIncome(income);
       toast.success("Income updated successfully");
       setIncomeDialogOpen(false);
@@ -145,7 +138,6 @@ const Dashboard = () => {
     try {
       setIsResetting(true);
       await resetUserData();
-      // Clear local transactions state
       setTransactions([]);
       toast.success("All data has been reset successfully");
     } catch (error) {
@@ -157,7 +149,6 @@ const Dashboard = () => {
   };
   
   const handleAddTransaction = (newTransaction: Transaction) => {
-    // Add the new transaction to the list
     setTransactions([newTransaction, ...transactions]);
   };
   
@@ -185,10 +176,12 @@ const Dashboard = () => {
     );
   }
 
+  const summary = calculateSummary(transactions, userProfile?.total_income || 0);
+  console.log("Dashboard rendering with summary:", summary, "and userProfile:", userProfile);
+
   return (
     <Layout>
       <div className="max-w-7xl mx-auto text-left relative overflow-hidden px-4 md:px-6">
-        {/* Animated background */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-teal-50 dark:from-gray-900 dark:to-gray-800"></div>
           <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-blue-100 to-transparent dark:from-blue-900/20 dark:to-transparent"></div>

@@ -14,15 +14,13 @@ import { motion } from "framer-motion";
 import InvestmentSummaryCards from "@/components/investment/InvestmentSummaryCards";
 import InvestmentSuggestions from "@/components/investment/InvestmentSuggestions";
 import InvestmentRecommendations from "@/components/investment/InvestmentRecommendations";
-import PortfolioCharts from "@/components/investment/PortfolioCharts";
 import InvestmentList from "@/components/investment/InvestmentList";
 
 // Import new components
 import LiveStockTracker from "@/components/investment/LiveStockTracker";
-import AIInvestmentAdvisor from "@/components/investment/AIInvestmentAdvisor";
-import PortfolioRebalancer from "@/components/investment/PortfolioRebalancer";
 import BitcoinTracker from "@/components/investment/BitcoinTracker";
 import SIPTracker from "@/components/investment/SIPTracker";
+import SimpleInvestmentForm from "@/components/investment/SimpleInvestmentForm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Loader } from "lucide-react";
@@ -64,24 +62,6 @@ const InvestmentPage = () => {
   const totalReturnPercent = totalInitialValue > 0 
     ? ((totalValue - totalInitialValue) / totalInitialValue) * 100 
     : 0;
-  
-  // Prepare data for portfolio composition chart
-  const portfolioComposition = investments.map((investment) => ({
-    name: investment.name,
-    value: investment.value,
-  }));
-  
-  // Colors for charts
-  const COLORS = [
-    "#0EA5E9",
-    "#10B981",
-    "#F59E0B",
-    "#EF4444",
-    "#8B5CF6",
-    "#EC4899",
-    "#6B7280",
-    "#14B8A6",
-  ];
   
   // Generate growth data for portfolio projection
   const growthData = generateGrowthData(
@@ -193,20 +173,7 @@ const InvestmentPage = () => {
             <BitcoinTracker />
           </motion.div>
           
-          {/* Conditional SIP Tracker - optimized for performance */}
-          <Suspense fallback={
-            <div className="h-60 flex items-center justify-center">
-              <Loader className="animate-spin h-8 w-8 text-primary/60" />
-            </div>
-          }>
-            {!isMobile && (
-              <motion.div variants={itemVariants}>
-                <SIPTracker />
-              </motion.div>
-            )}
-          </Suspense>
-          
-          {/* Live Stock Tracker - optimized for performance */}
+          {/* Live Stock Tracker */}
           <Suspense fallback={
             <div className="h-60 flex items-center justify-center">
               <Loader className="animate-spin h-8 w-8 text-primary/60" />
@@ -222,14 +189,17 @@ const InvestmentPage = () => {
             className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8"
             variants={itemVariants}
           >
-            {/* Left Column - AI Advisor */}
+            {/* Left Column - Simple Investment Form */}
             <div className="lg:col-span-2">
-              <AIInvestmentAdvisor />
+              <SimpleInvestmentForm />
             </div>
             
-            {/* Right Column - Portfolio Rebalancer */}
+            {/* Right Column - Investment List */}
             <div>
-              <PortfolioRebalancer />
+              <InvestmentList
+                investments={investments}
+                currency={activeCurrency}
+              />
             </div>
           </motion.div>
           
@@ -249,31 +219,6 @@ const InvestmentPage = () => {
               hasIncomeInfo={!!userProfile?.total_income}
               currency={activeCurrency}
             />
-          </motion.div>
-          
-          {/* Lower Content - Responsive grid */}
-          <motion.div 
-            className="grid grid-cols-1 lg:grid-cols-3 gap-8"
-            variants={itemVariants}
-          >
-            {/* Left Column - Charts */}
-            <div className="lg:col-span-2 space-y-8">
-              <PortfolioCharts
-                investments={investments}
-                portfolioComposition={portfolioComposition}
-                growthData={growthData}
-                COLORS={COLORS}
-                currency={activeCurrency}
-              />
-            </div>
-            
-            {/* Right Column - Investment List */}
-            <div className="space-y-8">
-              <InvestmentList
-                investments={investments}
-                currency={activeCurrency}
-              />
-            </div>
           </motion.div>
         </motion.div>
       </div>
