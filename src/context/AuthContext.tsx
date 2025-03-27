@@ -58,17 +58,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const getSession = async () => {
-      try {
-        setIsLoading(true);
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event: AuthChangeEvent, session: Session | null) => {
+        console.log(`Auth event: ${event}`);
+        
+        // Only synchronous state updates here
         setSession(session);
         setUser(session?.user ?? null);
-
+        
+        // Use setTimeout to avoid deadlocks
         if (session?.user) {
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
+          }, 0);
+        } else {
+          setUserProfile(null);
+        }
+      }
+    );
+
+    // THEN check for existing session
+    const initializeAuth = async () => {
+      try {
+        setIsLoading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+
+        // Clear session if not on login or signup page to prevent auto-login
+        const currentPath = window.location.pathname;
+        if (session && !currentPath.includes("/login") && !currentPath.includes("/signup") && currentPath === "/") {
+          await supabase.auth.signOut({ scope: "local" });
+          setSession(null);
+          setUser(null);
+          setUserProfile(null);
+          console.log("Session cleared on landing page");
+        } else if (session?.user) {
+          setSession(session);
+          setUser(session.user);
           await fetchUserProfile(session.user.id);
         }
       } catch (error) {
@@ -78,26 +104,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    getSession();
-
-    // Listen for auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
-        console.log(`Auth event: ${event}`);
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          await fetchUserProfile(session.user.id);
-        } else {
-          setUserProfile(null);
-        }
-      }
-    );
+    initializeAuth();
 
     // Cleanup subscription on unmount
     return () => {
-      authListener.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -302,7 +313,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Reset user data function
+  // Reset user data function with enhanced reset capabilities
   const resetUserData = async () => {
     try {
       if (!user) {
@@ -317,6 +328,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .eq("user_id", user.id);
 
       if (transactionError) throw transactionError;
+
+      // Reset user income to 0
+      const { error: incomeError } = await supabase
+        .from("users")
+        .update({ total_income: 0 })
+        .eq("id", user.id);
+        
+      if (incomeError) throw incomeError;
+      
+      // Update local profile state
+      setUserProfile(prev => prev ? {...prev, total_income: 0} : null);
 
       // Clear local storage data
       localStorage.removeItem(`budgetify-investments-${user.id}`);

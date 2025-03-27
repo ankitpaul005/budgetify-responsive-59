@@ -41,19 +41,21 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isResetting, setIsResetting] = useState(false);
   
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate("/login");
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+  
   // Fetch transactions when user logs in
   useEffect(() => {
     console.log("Dashboard: Auth state:", isAuthenticated, user?.id);
     
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
-    }
-    
     if (user) {
       fetchTransactions();
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [user]);
   
   // Update newIncome when userProfile changes
   useEffect(() => {
@@ -143,15 +145,18 @@ const Dashboard = () => {
     try {
       setIsResetting(true);
       await resetUserData();
-      await fetchTransactions(); // Refresh data after reset
+      // Clear local transactions state
+      setTransactions([]);
+      toast.success("All data has been reset successfully");
     } catch (error) {
       console.error("Error resetting data:", error);
+      toast.error("Failed to reset data");
     } finally {
       setIsResetting(false);
     }
   };
   
-  const handleAddTransaction = (newTransaction) => {
+  const handleAddTransaction = (newTransaction: Transaction) => {
     // Add the new transaction to the list
     setTransactions([newTransaction, ...transactions]);
   };
@@ -167,9 +172,22 @@ const Dashboard = () => {
     "#14B8A6",
   ];
 
+  if (isLoading && !userProfile) {
+    return (
+      <Layout>
+        <div className="max-w-7xl mx-auto p-4 flex justify-center items-center h-[80vh]">
+          <div className="animate-pulse text-center">
+            <h2 className="text-2xl font-semibold mb-2">Loading your dashboard...</h2>
+            <p className="text-muted-foreground">Please wait while we fetch your financial data</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto text-left relative overflow-hidden">
+      <div className="max-w-7xl mx-auto text-left relative overflow-hidden px-4 md:px-6">
         {/* Animated background */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-teal-50 dark:from-gray-900 dark:to-gray-800"></div>
@@ -179,15 +197,15 @@ const Dashboard = () => {
         </div>
 
         <div className="relative z-10">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-budget-blue to-budget-green">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h1 className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-budget-blue to-budget-green">
               Welcome back, {userProfile?.name || user?.email || "User"}
             </h1>
             
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
               <Dialog open={phoneDialogOpen} onOpenChange={setPhoneDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="gap-2">
+                  <Button size="sm" variant="outline" className="gap-2 w-full sm:w-auto">
                     <Phone className="h-4 w-4" />
                     <span className="hidden sm:inline">Set Phone for 2FA</span>
                   </Button>
@@ -224,7 +242,7 @@ const Dashboard = () => {
               
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" className="gap-2" disabled={isResetting}>
+                  <Button variant="destructive" size="sm" className="gap-2 w-full sm:w-auto" disabled={isResetting}>
                     <RefreshCw className={`h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
                     <span className="hidden sm:inline">Reset Data</span>
                   </Button>
@@ -258,6 +276,7 @@ const Dashboard = () => {
             setNewIncome={setNewIncome}
             handleUpdateIncome={handleUpdateIncome}
             hasTransactions={transactions.length > 0}
+            transactions={transactions}
           />
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
