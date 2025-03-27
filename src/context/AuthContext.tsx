@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useState,
@@ -113,6 +114,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) throw error;
 
+      console.log("Fetched user profile:", data);
+      
       setUserProfile({
         ...data,
         currency: "INR"
@@ -250,6 +253,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
+      // Input validation to ensure we're getting a proper number
       if (isNaN(income) || income < 0 || income > 10000000) {
         toast.error("Invalid income amount. Please enter a valid number.");
         return;
@@ -257,16 +261,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       console.log("Updating income to:", income);
 
+      // Make sure we're storing exactly what the user entered without any modifications
+      const exactIncome = income;
+      
       const { error } = await supabase
         .from("users")
-        .update({ total_income: income })
+        .update({ total_income: exactIncome })
         .eq("id", user.id);
 
       if (error) throw error;
 
+      // Update local state with exactly the same value
       setUserProfile((prevProfile) => ({
         ...prevProfile,
-        total_income: income
+        total_income: exactIncome
       }));
 
       toast.success("Income updated successfully");

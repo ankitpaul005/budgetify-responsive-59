@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { processStockInvestment } from "@/utils/dashboardUtils";
 import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency } from "@/utils/formatting";
 
 const SimpleInvestmentForm: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -16,16 +17,16 @@ const SimpleInvestmentForm: React.FC = () => {
   const [quantity, setQuantity] = useState("1");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Stock options with current price
+  // Stock options with current price in INR
   const stockOptions = [
-    { symbol: "AAPL", name: "Apple Inc.", price: 170.35 },
-    { symbol: "MSFT", name: "Microsoft Corp.", price: 410.34 },
-    { symbol: "GOOGL", name: "Alphabet Inc.", price: 145.28 },
-    { symbol: "AMZN", name: "Amazon.com Inc.", price: 178.97 },
-    { symbol: "META", name: "Meta Platforms Inc.", price: 474.88 },
-    { symbol: "TSLA", name: "Tesla Inc.", price: 174.50 },
-    { symbol: "NFLX", name: "Netflix Inc.", price: 622.83 },
-    { symbol: "NVDA", name: "NVIDIA Corp.", price: 925.61 },
+    { symbol: "AAPL", name: "Apple Inc.", price: 13000.35 },
+    { symbol: "MSFT", name: "Microsoft Corp.", price: 33000.25 },
+    { symbol: "GOOGL", name: "Alphabet Inc.", price: 11750.40 },
+    { symbol: "AMZN", name: "Amazon.com Inc.", price: 14500.60 },
+    { symbol: "META", name: "Meta Platforms Inc.", price: 38500.75 },
+    { symbol: "TSLA", name: "Tesla Inc.", price: 14250.80 },
+    { symbol: "NFLX", name: "Netflix Inc.", price: 50234.20 },
+    { symbol: "NVDA", name: "NVIDIA Corp.", price: 74850.45 },
     { symbol: "RELIANCE.NS", name: "Reliance Industries", price: 2910.25 },
     { symbol: "TCS.NS", name: "Tata Consultancy", price: 3724.45 }
   ];
@@ -112,7 +113,7 @@ const SimpleInvestmentForm: React.FC = () => {
 
           {selectedStock && (
             <div className="p-3 bg-muted/40 rounded-md">
-              <p className="text-sm">Current Price: <strong>{selectedStock.price.toFixed(2)} USD</strong></p>
+              <p className="text-sm">Current Price: <strong>{formatCurrency(selectedStock.price, "INR")}</strong></p>
             </div>
           )}
 
@@ -129,7 +130,7 @@ const SimpleInvestmentForm: React.FC = () => {
 
           {totalAmount > 0 && (
             <div className="p-3 bg-muted/40 rounded-md">
-              <p className="text-sm">Total Investment: <strong>{totalAmount.toFixed(2)} USD</strong></p>
+              <p className="text-sm">Total Investment: <strong>{formatCurrency(totalAmount, "INR")}</strong></p>
             </div>
           )}
 
