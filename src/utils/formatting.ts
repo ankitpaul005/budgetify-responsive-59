@@ -2,16 +2,16 @@
 // Currency conversion rates against USD
 export const currencyRates: Record<string, number> = {
   USD: 1,
-  INR: 83.5,
-  EUR: 0.92,
-  GBP: 0.78,
-  JPY: 156.9,
-  CAD: 1.35,
-  AUD: 1.48,
-  SGD: 1.34,
-  AED: 3.67,
-  CNY: 7.22,
-  BTC: 0.000015, // Approximate - this would need regular updates
+  INR: 1,
+  EUR: 1,
+  GBP: 1,
+  JPY: 1,
+  CAD: 1,
+  AUD: 1,
+  SGD: 1,
+  AED: 1,
+  CNY: 1,
+  BTC: 1, // Approximate - this would need regular updates
 };
 
 // Currency symbols
