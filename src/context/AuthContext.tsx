@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useState,
@@ -261,12 +260,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       console.log("Updating income to:", income);
 
-      // Make sure we're storing exactly what the user entered without any modifications
-      const exactIncome = income;
-      
+      // Store the exact input value without any currency conversion
       const { error } = await supabase
         .from("users")
-        .update({ total_income: exactIncome })
+        .update({ total_income: income })
         .eq("id", user.id);
 
       if (error) throw error;
@@ -274,7 +271,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Update local state with exactly the same value
       setUserProfile((prevProfile) => ({
         ...prevProfile,
-        total_income: exactIncome
+        total_income: income
       }));
 
       toast.success("Income updated successfully");

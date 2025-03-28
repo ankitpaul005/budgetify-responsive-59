@@ -1,4 +1,3 @@
-
 import { Transaction } from "@/utils/mockData";
 
 export const calculateSummary = (transactions: Transaction[], userIncome: number = 0) => {
@@ -37,9 +36,8 @@ export const calculateSummary = (transactions: Transaction[], userIncome: number
     
   console.log("Additional income:", additionalIncome, "User income:", userIncome);
     
-  // Make sure we're using exact numbers for calculations
-  const exactUserIncome = userIncome;
-  const totalIncome = exactUserIncome + additionalIncome;
+  // Use the exact income value without any currency conversion
+  const totalIncome = userIncome + additionalIncome;
   const balance = totalIncome - expenses;
   const savingsRate = totalIncome > 0 ? ((totalIncome - expenses) / totalIncome) * 100 : 0;
   
