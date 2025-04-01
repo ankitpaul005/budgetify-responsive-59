@@ -33,10 +33,7 @@ export const currencySymbols: Record<string, string> = {
 export const formatCurrency = (amount: number, currency = "INR") => {
   let convertedAmount = amount;
   
-  // Convert from USD to target currency if different
-  if (currency !== "USD" && currencyRates[currency]) {
-    convertedAmount = amount * currencyRates[currency];
-  }
+  // No conversion - use the original amount directly
   
   // Format based on currency
   let formatter: Intl.NumberFormat;
@@ -82,15 +79,8 @@ export const formatPercent = (percent: number) => {
   }).format(percent / 100);
 };
 
-// Convert amount between currencies
+// Convert amount between currencies - no longer does any conversion
 export const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string): number => {
-  if (fromCurrency === toCurrency) return amount;
-  
-  // Convert to USD first if not already
-  const amountInUSD = fromCurrency === "USD" 
-    ? amount 
-    : amount / currencyRates[fromCurrency];
-    
-  // Convert from USD to target currency
-  return amountInUSD * currencyRates[toCurrency];
+  // Simply return the original amount without any conversion
+  return amount;
 };

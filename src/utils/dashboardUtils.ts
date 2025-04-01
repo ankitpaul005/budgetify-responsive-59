@@ -1,3 +1,4 @@
+
 import { Transaction } from "@/utils/mockData";
 
 export const calculateSummary = (transactions: Transaction[], userIncome: number = 0) => {
@@ -72,6 +73,30 @@ export const processStockInvestment = async (userId: string, symbol: string, qua
     };
   } catch (error) {
     console.error("Error processing stock investment:", error);
+    throw error;
+  }
+};
+
+// New function to handle SIP investments
+export const processSIPInvestment = async (userId: string, fundName: string, amount: number) => {
+  try {
+    // Create a new expense transaction for the SIP investment
+    const investmentTransaction = {
+      user_id: userId,
+      description: `SIP Investment in ${fundName}`,
+      amount: amount,
+      category: "SIP Investments",
+      type: "expense",
+      date: new Date().toISOString()
+    };
+    
+    // Return the transaction data for the caller to add to Supabase
+    return {
+      transaction: investmentTransaction,
+      amount: amount
+    };
+  } catch (error) {
+    console.error("Error processing SIP investment:", error);
     throw error;
   }
 };

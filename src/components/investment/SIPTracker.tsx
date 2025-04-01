@@ -1,530 +1,432 @@
 
 import React, { useState, useEffect } from "react";
-import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
-import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { TrendingUp, TrendingDown, Filter, Plus } from "lucide-react";
-import { fetchSIPData } from "@/services/stockService";
-import { formatCurrency } from "@/utils/formatting";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { format, subMonths } from "date-fns";
+import { ArrowUpRight, CircleDollarSign, TrendingUp, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { processSIPInvestment } from "@/utils/dashboardUtils";
+import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency } from "@/utils/formatting";
 
-interface SIPFormData {
-  name: string;
-  category: string;
-  amount: string;
-  frequency: string;
-}
+// Fetch SIP data from the Supabase Edge Function
+const fetchSIPData = async (categories?: string[]) => {
+  try {
+    const { data } = await supabase.functions.invoke('fetch-sip-data', {
+      body: { categories }
+    });
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching SIP data:", error);
+    return [];
+  }
+};
 
-interface UserSIP {
-  id: string;
-  user_id: string;
-  name: string;
-  category: string;
-  amount: number;
-  frequency: string;
-  status: string;
-  total_invested: number;
-  current_value: number;
-  created_at?: string;
-}
+// Generate mock historical data for a SIP fund
+const generateHistoricalData = (days = 90, startNav = 100, volatility = 0.01) => {
+  const data = [];
+  let currentNav = startNav;
+  
+  const now = new Date();
+  
+  for (let i = days; i >= 0; i--) {
+    const date = subMonths(now, 3);
+    date.setDate(date.getDate() + i);
+    
+    // Random daily change with slight upward bias
+    const change = (Math.random() - 0.45) * volatility;
+    currentNav = currentNav * (1 + change);
+    
+    data.push({
+      date: format(date, "MMM dd"),
+      nav: currentNav.toFixed(2),
+    });
+  }
+  
+  return data;
+};
 
 const SIPTracker = () => {
   const { user } = useAuth();
-  const [sipData, setSipData] = useState<any[]>([]);
-  const [userSIPs, setUserSIPs] = useState<UserSIP[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [formData, setFormData] = useState<SIPFormData>({
-    name: "",
-    category: "",
-    amount: "",
-    frequency: "Monthly"
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [selectedFund, setSelectedFund] = useState<any>(null);
+  const [investmentAmount, setInvestmentAmount] = useState("1000");
+  const [investmentDialog, setInvestmentDialog] = useState(false);
+  
+  // Fetch SIP data
+  const { data: sipData = [], isLoading } = useQuery({
+    queryKey: ["sip-funds", selectedCategory],
+    queryFn: () => fetchSIPData(selectedCategory !== "All" ? [selectedCategory] : undefined),
+    refetchOnWindowFocus: false,
   });
-
-  // Fetch SIP data from service
+  
+  // Generate historical data for selected fund
+  const [historicalData, setHistoricalData] = useState<any[]>([]);
+  
   useEffect(() => {
-    const fetchSIPs = async () => {
-      try {
-        const data = await fetchSIPData();
-        setSipData(data);
-      } catch (error) {
-        console.error("Error fetching SIP data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSIPs();
-
-    // Refresh every 10 seconds
-    const interval = setInterval(fetchSIPs, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Mock user SIPs instead of fetching from Supabase
-  useEffect(() => {
-    if (!user) return;
-
-    // Mock data for user SIPs
-    const mockUserSIPs: UserSIP[] = [
-      {
-        id: "1",
-        user_id: user.id,
-        name: "HDFC Index Fund",
-        category: "Large Cap",
-        amount: 5000,
-        frequency: "Monthly",
-        status: "active",
-        total_invested: 60000,
-        current_value: 65200
-      },
-      {
-        id: "2",
-        user_id: user.id,
-        name: "SBI Small Cap Fund",
-        category: "Small Cap",
-        amount: 3000,
-        frequency: "Monthly",
-        status: "active",
-        total_invested: 36000,
-        current_value: 38900
-      }
-    ];
-    
-    setUserSIPs(mockUserSIPs);
-  }, [user]);
-
-  // Handle form input changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Handle select changes
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Handle form submission
-  const handleSubmit = async () => {
+    if (selectedFund) {
+      // Generate realistic looking historical data based on the fund's attributes
+      const volatility = selectedFund.risk === "High" ? 0.015 : 
+                          selectedFund.risk === "Moderate" ? 0.01 : 0.007;
+      const startNav = selectedFund.nav - (selectedFund.nav * (selectedFund.oneYearReturn / 100));
+      setHistoricalData(generateHistoricalData(90, startNav, volatility));
+    }
+  }, [selectedFund]);
+  
+  // Categories for filtering
+  const categories = [
+    "All",
+    "Large Cap", 
+    "Mid Cap", 
+    "Small Cap", 
+    "Multi Cap", 
+    "ELSS", 
+    "Debt", 
+    "Hybrid", 
+    "Index"
+  ];
+  
+  // Handle investment submission
+  const handleInvestment = async () => {
     if (!user) {
       toast.error("Please log in to invest in SIPs");
       return;
     }
-
-    if (!formData.name || !formData.category || !formData.amount) {
-      toast.error("Please fill all required fields");
-      return;
-    }
-
-    const amount = parseFloat(formData.amount);
-    if (isNaN(amount) || amount <= 0) {
-      toast.error("Please enter a valid amount");
-      return;
-    }
-
-    try {
-      // Create new SIP (using mock data since we don't have a sips table)
-      const newSIP: UserSIP = {
-        id: Math.random().toString(36).substring(2, 11),
-        user_id: user.id,
-        name: formData.name,
-        category: formData.category,
-        amount: amount,
-        frequency: formData.frequency,
-        status: "active",
-        total_invested: amount,
-        current_value: amount
-      };
-
-      // Update local state
-      setUserSIPs(prev => [newSIP, ...prev]);
-
-      toast.success("SIP investment created successfully!");
-      setDialogOpen(false);
-
-      // Reset form
-      setFormData({
-        name: "",
-        category: "",
-        amount: "",
-        frequency: "Monthly"
-      });
-    } catch (error) {
-      console.error("Error creating SIP:", error);
-      toast.error("Failed to create SIP investment");
-    }
-  };
-
-  // Filter SIPs by category
-  const filteredSIPs = activeCategory === "All"
-    ? sipData
-    : sipData.filter(sip => sip.category === activeCategory);
-
-  // Extract categories for filter
-  const categories = ["All", ...new Set(sipData.map(sip => sip.category))];
-
-  // Generate performance data for chart
-  const generatePerformanceData = () => {
-    const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    ];
-    const currentMonth = new Date().getMonth();
     
-    return months.map((month, i) => {
-      const monthIndex = (currentMonth - 11 + i) % 12;
-      const isBeforeCurrentMonth = monthIndex <= currentMonth;
+    if (!selectedFund) {
+      toast.error("Please select a fund to invest in");
+      return;
+    }
+    
+    const amount = Number(investmentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid investment amount");
+      return;
+    }
+    
+    try {
+      // Process the SIP investment
+      const result = await processSIPInvestment(
+        user.id, 
+        selectedFund.name, 
+        amount
+      );
       
-      return {
-        month,
-        "Large Cap": isBeforeCurrentMonth ? 10 + Math.random() * 8 : null,
-        "Mid Cap": isBeforeCurrentMonth ? 12 + Math.random() * 10 : null,
-        "Small Cap": isBeforeCurrentMonth ? 15 + Math.random() * 12 : null,
-        "ELSS": isBeforeCurrentMonth ? 8 + Math.random() * 7 : null,
-      };
-    });
+      // Create transaction in Supabase
+      if (result && result.transaction) {
+        const { error } = await supabase
+          .from("transactions")
+          .insert(result.transaction);
+          
+        if (error) throw error;
+      }
+      
+      toast.success(`Successfully invested ${formatCurrency(amount)} in ${selectedFund.name}`);
+      setInvestmentDialog(false);
+    } catch (error) {
+      console.error("Investment error:", error);
+      toast.error("Failed to process your investment. Please try again.");
+    }
   };
-
-  const performanceData = generatePerformanceData();
-
+  
   return (
-    <div className="mb-8">
-      <GlassmorphicCard>
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-budget-green" /> 
-                SIP Investments
-              </CardTitle>
-              <CardDescription>
-                Systematic Investment Plans for long-term growth
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="gap-1">
-                    <Plus className="h-4 w-4" />
-                    <span className="hidden sm:inline">Invest in SIP</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px]">
-                  <DialogHeader>
-                    <DialogTitle>Create SIP Investment</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">SIP Fund Name</Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        placeholder="E.g., HDFC Top 100 Fund"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Category</Label>
-                      <Select
-                        value={formData.category}
-                        onValueChange={(value) => handleSelectChange("category", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Large Cap">Large Cap</SelectItem>
-                          <SelectItem value="Mid Cap">Mid Cap</SelectItem>
-                          <SelectItem value="Small Cap">Small Cap</SelectItem>
-                          <SelectItem value="ELSS">ELSS (Tax Saving)</SelectItem>
-                          <SelectItem value="Debt">Debt</SelectItem>
-                          <SelectItem value="Hybrid">Hybrid</SelectItem>
-                          <SelectItem value="Index">Index</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="amount">Monthly Investment Amount</Label>
-                      <Input
-                        id="amount"
-                        name="amount"
-                        type="number"
-                        value={formData.amount}
-                        onChange={handleInputChange}
-                        placeholder="Enter amount in ₹"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="frequency">Investment Frequency</Label>
-                      <Select
-                        value={formData.frequency}
-                        onValueChange={(value) => handleSelectChange("frequency", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select frequency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Monthly">Monthly</SelectItem>
-                          <SelectItem value="Quarterly">Quarterly</SelectItem>
-                          <SelectItem value="Annually">Annually</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="button" onClick={handleSubmit}>
-                      Start Investment
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="market">
-            <TabsList className="mb-4">
-              <TabsTrigger value="market">Market SIPs</TabsTrigger>
-              <TabsTrigger value="my-sips">My SIP Investments</TabsTrigger>
-              <TabsTrigger value="performance">Performance</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="market">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-muted-foreground" />
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map(category => (
-                      <Button
-                        key={category}
-                        variant={activeCategory === category ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setActiveCategory(category)}
-                        className="text-xs"
-                      >
-                        {category}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {isLoading ? (
-                  Array(6).fill(0).map((_, index) => (
-                    <div key={index} className="border border-border rounded-lg p-4 animate-pulse">
-                      <div className="h-5 w-28 bg-muted rounded mb-2"></div>
-                      <div className="h-4 w-20 bg-muted rounded mb-4"></div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <div className="h-4 w-16 bg-muted rounded"></div>
-                          <div className="h-4 w-12 bg-muted rounded"></div>
-                        </div>
-                        <div className="flex justify-between">
-                          <div className="h-4 w-20 bg-muted rounded"></div>
-                          <div className="h-4 w-14 bg-muted rounded"></div>
-                        </div>
-                        <div className="flex justify-between">
-                          <div className="h-4 w-24 bg-muted rounded"></div>
-                          <div className="h-4 w-10 bg-muted rounded"></div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  filteredSIPs.map((sip, index) => (
-                    <div key={index} className="border border-border rounded-lg p-4 hover:bg-muted/40 transition-colors">
-                      <div className="flex justify-between items-start mb-1">
-                        <h3 className="font-medium">{sip.name}</h3>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="text-xs">Invest</Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                              <DialogTitle>Invest in {sip.name}</DialogTitle>
-                            </DialogHeader>
-                            <div className="py-4">
-                              <div className="space-y-2 mb-4">
-                                <p className="text-sm text-muted-foreground">Category: {sip.category}</p>
-                                <p className="text-sm text-muted-foreground">Risk: {sip.risk}</p>
-                                <p className="text-sm text-muted-foreground">3-Year Return: {sip.threeYearReturn.toFixed(2)}%</p>
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="sipAmount">Monthly Investment Amount</Label>
-                                <Input id="sipAmount" type="number" placeholder="Enter amount" />
-                              </div>
-                            </div>
-                            <DialogFooter>
-                              <Button onClick={() => {
-                                toast.success(`Investment in ${sip.name} started!`);
-                              }}>Start Investment</Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                      
-                      <p className="text-xs text-muted-foreground mb-3">{sip.category}</p>
-                      
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between text-xs">
-                          <span>NAV:</span>
-                          <span className="font-medium">{formatCurrency(sip.nav)}</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span>1 Year Return:</span>
-                          <span className={`font-medium ${sip.oneYearReturn >= 0 ? "text-budget-green" : "text-budget-red"}`}>
-                            {sip.oneYearReturn >= 0 ? "+" : ""}{sip.oneYearReturn.toFixed(2)}%
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span>3 Year Return:</span>
-                          <span className={`font-medium ${sip.threeYearReturn >= 0 ? "text-budget-green" : "text-budget-red"}`}>
-                            {sip.threeYearReturn >= 0 ? "+" : ""}{sip.threeYearReturn.toFixed(2)}%
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span>Risk Level:</span>
-                          <span className="font-medium">{sip.risk}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="my-sips">
-              {userSIPs.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {userSIPs.map((sip, index) => (
-                    <div key={index} className="border border-border rounded-lg p-4 hover:bg-muted/40 transition-colors">
-                      <div className="flex justify-between items-start mb-1">
-                        <h3 className="font-medium">{sip.name}</h3>
-                        <div className={`text-xs px-1.5 py-0.5 rounded ${
-                          sip.status === 'active' ? 'bg-budget-green-light text-budget-green' : 'bg-muted text-muted-foreground'
-                        }`}>
-                          {sip.status}
-                        </div>
-                      </div>
-                      
-                      <p className="text-xs text-muted-foreground mb-3">{sip.category}</p>
-                      
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between text-xs">
-                          <span>Monthly Investment:</span>
-                          <span className="font-medium">{formatCurrency(sip.amount)}</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span>Total Invested:</span>
-                          <span className="font-medium">{formatCurrency(sip.total_invested)}</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span>Current Value:</span>
-                          <span className="font-medium">{formatCurrency(sip.current_value)}</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span>Investment Frequency:</span>
-                          <span className="font-medium">{sip.frequency}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4 flex justify-end gap-2">
-                        <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => {
-                          toast.success(`Additional investment in ${sip.name} recorded!`);
-                        }}>
-                          Add Investment
-                        </Button>
-                        <Button variant={sip.status === 'active' ? "destructive" : "default"} size="sm" className="text-xs h-7" onClick={() => {
-                          toast.success(`SIP status updated!`);
-                        }}>
-                          {sip.status === 'active' ? 'Stop SIP' : 'Resume SIP'}
-                        </Button>
-                      </div>
-                    </div>
+    <Card className="shadow-md mt-6">
+      <CardHeader>
+        <CardTitle className="text-xl font-bold flex items-center">
+          <CircleDollarSign className="mr-2 h-5 w-5 text-green-500" />
+          SIP Investment Tracker
+        </CardTitle>
+        <CardDescription>
+          Track and invest in Systematic Investment Plans
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="explore">
+          <TabsList className="mb-4">
+            <TabsTrigger value="explore">Explore SIPs</TabsTrigger>
+            <TabsTrigger value="details">Fund Details</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="explore">
+            <div className="mb-4">
+              <Select defaultValue={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-full sm:w-[240px]">
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
                   ))}
-                </div>
-              ) : (
-                <div className="text-center py-10 border border-dashed border-border rounded-lg">
-                  <TrendingUp className="mx-auto h-12 w-12 text-muted-foreground opacity-50 mb-4" />
-                  <h3 className="font-medium text-lg mb-2">No SIP Investments Yet</h3>
-                  <p className="text-muted-foreground mb-4">Start your wealth creation journey with systematic investments</p>
-                  <Button onClick={() => setDialogOpen(true)}>Start Your First SIP</Button>
-                </div>
-              )}
-            </TabsContent>
+                </SelectContent>
+              </Select>
+            </div>
             
-            <TabsContent value="performance">
-              <div className="h-80 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={performanceData}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                    <XAxis dataKey="month" />
-                    <YAxis 
-                      tickFormatter={(value) => `${value}%`}
-                      domain={[0, 'dataMax + 5']}
-                    />
-                    <Tooltip 
-                      formatter={(value) => [`${value}%`, 'Return']}
-                      labelFormatter={(label) => `Month: ${label}`}
-                    />
-                    <Legend />
-                    <Line type="monotone" dataKey="Large Cap" stroke="#10B981" strokeWidth={2} activeDot={{ r: 8 }} />
-                    <Line type="monotone" dataKey="Mid Cap" stroke="#8B5CF6" strokeWidth={2} activeDot={{ r: 8 }} />
-                    <Line type="monotone" dataKey="Small Cap" stroke="#F59E0B" strokeWidth={2} activeDot={{ r: 8 }} />
-                    <Line type="monotone" dataKey="ELSS" stroke="#0EA5E9" strokeWidth={2} activeDot={{ r: 8 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              
-              <div className="mt-8">
-                <h3 className="text-lg font-medium mb-4">Annual Average Returns by Category</h3>
-                <div className="h-60 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={[
-                        { category: 'Large Cap', '1 Year': 12, '3 Years': 15, '5 Years': 14 },
-                        { category: 'Mid Cap', '1 Year': 15, '3 Years': 18, '5 Years': 16 },
-                        { category: 'Small Cap', '1 Year': 18, '3 Years': 20, '5 Years': 17 },
-                        { category: 'ELSS', '1 Year': 10, '3 Years': 14, '5 Years': 12 },
-                        { category: 'Debt', '1 Year': 7, '3 Years': 8, '5 Years': 8.5 },
-                        { category: 'Hybrid', '1 Year': 11, '3 Years': 13, '5 Years': 12.5 },
-                      ]}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4">Fund Name</th>
+                    <th className="text-right py-3 px-4">Category</th>
+                    <th className="text-right py-3 px-4">NAV (₹)</th>
+                    <th className="text-right py-3 px-4">1Y Return</th>
+                    <th className="text-right py-3 px-4">Risk</th>
+                    <th className="text-right py-3 px-4">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8">
+                        <div className="flex justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : sipData.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No SIP funds available
+                      </td>
+                    </tr>
+                  ) : (
+                    sipData.map((fund: any) => (
+                      <tr key={fund.id} className="border-b hover:bg-muted/50 transition-colors">
+                        <td className="py-3 px-4 font-medium">
+                          <button 
+                            onClick={() => setSelectedFund(fund)} 
+                            className="text-left hover:text-primary focus:outline-none"
+                          >
+                            {fund.name}
+                          </button>
+                        </td>
+                        <td className="text-right py-3 px-4">{fund.category}</td>
+                        <td className="text-right py-3 px-4">₹{fund.nav.toFixed(2)}</td>
+                        <td className={`text-right py-3 px-4 ${fund.oneYearReturn >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {fund.oneYearReturn >= 0 ? '+' : ''}{fund.oneYearReturn.toFixed(2)}%
+                        </td>
+                        <td className="text-right py-3 px-4">
+                          <span className={`inline-block rounded-full px-2 py-1 text-xs ${
+                            fund.risk === 'High' ? 'bg-red-100 text-red-700' : 
+                            fund.risk === 'Moderate' ? 'bg-yellow-100 text-yellow-700' : 
+                            'bg-green-100 text-green-700'
+                          }`}>
+                            {fund.risk}
+                          </span>
+                        </td>
+                        <td className="text-right py-3 px-4">
+                          <Dialog open={investmentDialog && selectedFund?.id === fund.id} onOpenChange={(open) => {
+                            setInvestmentDialog(open);
+                            if (open) setSelectedFund(fund);
+                          }}>
+                            <DialogTrigger asChild>
+                              <Button size="sm" variant="outline" className="text-xs">
+                                Invest
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Invest in {fund.name}</DialogTitle>
+                                <DialogDescription>
+                                  Enter the amount you would like to invest in this SIP.
+                                </DialogDescription>
+                              </DialogHeader>
+                              
+                              <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                  <Label htmlFor="amount">Investment Amount (₹)</Label>
+                                  <Input
+                                    id="amount"
+                                    type="number"
+                                    value={investmentAmount}
+                                    onChange={(e) => setInvestmentAmount(e.target.value)}
+                                    placeholder="1000"
+                                    min="100"
+                                  />
+                                </div>
+                                
+                                <div className="bg-muted/50 p-3 rounded-md text-sm">
+                                  <div className="flex justify-between mb-2">
+                                    <span>Fund Category:</span>
+                                    <span className="font-medium">{fund.category}</span>
+                                  </div>
+                                  <div className="flex justify-between mb-2">
+                                    <span>Current NAV:</span>
+                                    <span className="font-medium">₹{fund.nav.toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>1 Year Return:</span>
+                                    <span className={`font-medium ${fund.oneYearReturn >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                      {fund.oneYearReturn >= 0 ? '+' : ''}{fund.oneYearReturn.toFixed(2)}%
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <DialogFooter>
+                                <Button variant="outline" onClick={() => setInvestmentDialog(false)}>
+                                  Cancel
+                                </Button>
+                                <Button onClick={handleInvestment}>
+                                  Confirm Investment
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="details">
+            {selectedFund ? (
+              <div className="space-y-6">
+                <div className="flex flex-col md:flex-row justify-between gap-6">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold mb-2">{selectedFund.name}</h3>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Category</p>
+                        <p className="font-medium">{selectedFund.category}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">NAV</p>
+                        <p className="font-medium">₹{selectedFund.nav.toFixed(2)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">1 Year Return</p>
+                        <p className={`font-medium ${selectedFund.oneYearReturn >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {selectedFund.oneYearReturn >= 0 ? '+' : ''}{selectedFund.oneYearReturn.toFixed(2)}%
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">3 Year Return</p>
+                        <p className={`font-medium ${selectedFund.threeYearReturn >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {selectedFund.threeYearReturn >= 0 ? '+' : ''}{selectedFund.threeYearReturn.toFixed(2)}%
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">5 Year Return</p>
+                        <p className={`font-medium ${selectedFund.fiveYearReturn >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {selectedFund.fiveYearReturn >= 0 ? '+' : ''}{selectedFund.fiveYearReturn.toFixed(2)}%
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Risk</p>
+                        <p className="font-medium">{selectedFund.risk}</p>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      onClick={() => setInvestmentDialog(true)}
+                      className="w-full sm:w-auto"
                     >
-                      <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                      <XAxis dataKey="category" />
-                      <YAxis tickFormatter={(value) => `${value}%`} />
-                      <Tooltip 
-                        formatter={(value) => [`${value}%`, 'Return']}
-                        labelFormatter={(label) => `Category: ${label}`}
-                      />
-                      <Legend />
-                      <Bar dataKey="1 Year" fill="#10B981" name="1 Year" />
-                      <Bar dataKey="3 Years" fill="#8B5CF6" name="3 Years" />
-                      <Bar dataKey="5 Years" fill="#F59E0B" name="5 Years" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                      Invest Now
+                    </Button>
+                  </div>
+                  
+                  <div className="flex-1 h-[240px]">
+                    <h4 className="text-sm font-medium mb-2">NAV Trend (3 Months)</h4>
+                    {historicalData.length > 0 ? (
+                      <ChartContainer
+                        config={{
+                          nav: {
+                            theme: {
+                              light: "hsl(220, 80%, 50%)",
+                              dark: "hsl(220, 80%, 60%)"
+                            }
+                          }
+                        }}
+                      >
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart 
+                            data={historicalData}
+                            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                            <XAxis 
+                              dataKey="date" 
+                              tick={{ fontSize: 12 }}
+                              tickFormatter={(value) => value.split(' ')[0]}
+                              interval="preserveEnd"
+                            />
+                            <YAxis 
+                              tick={{ fontSize: 12 }}
+                              tickFormatter={(value) => `₹${value}`}
+                              domain={['auto', 'auto']}
+                            />
+                            <ChartTooltip>
+                              <ChartTooltipContent 
+                                formatter={(value) => [`₹${value}`, "NAV"]}
+                              />
+                            </ChartTooltip>
+                            <Line 
+                              type="monotone" 
+                              dataKey="nav" 
+                              stroke="var(--color-nav)"
+                              strokeWidth={2}
+                              dot={false}
+                              activeDot={{ r: 4 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </ChartContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <p className="text-muted-foreground text-sm">No historical data available</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="bg-muted/30 p-4 rounded-md">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">About this fund</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedFund.category === "Large Cap" 
+                          ? "This fund primarily invests in large-cap companies which are more stable and less volatile."
+                          : selectedFund.category === "Mid Cap"
+                          ? "This fund primarily invests in mid-cap companies which have good growth potential but moderate risk."
+                          : selectedFund.category === "Small Cap"
+                          ? "This fund primarily invests in small-cap companies which have high growth potential but higher risk."
+                          : selectedFund.category === "ELSS"
+                          ? "This is a tax-saving equity scheme with a lock-in period of 3 years."
+                          : "This fund invests in a mix of securities to provide balanced returns over time."}
+                        {" "}Past performance does not guarantee future results.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </GlassmorphicCard>
-    </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <TrendingUp className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">Select a fund to view details</h3>
+                <p className="text-muted-foreground max-w-md">
+                  Choose a fund from the "Explore SIPs" tab to view detailed information and performance history.
+                </p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };
 
