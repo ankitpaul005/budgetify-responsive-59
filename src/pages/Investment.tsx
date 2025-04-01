@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -186,7 +185,7 @@ const InvestmentPage = () => {
                   onClick={handleRefreshRates} 
                   disabled={isRefreshing}
                 >
-                  <Refresh className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 </Button>
               </div>
               {isLoadingRates ? (
