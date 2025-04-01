@@ -77,7 +77,7 @@ export const processStockInvestment = async (userId: string, symbol: string, qua
   }
 };
 
-// New function to handle SIP investments
+// Function to handle SIP investments
 export const processSIPInvestment = async (userId: string, fundName: string, amount: number) => {
   try {
     // Create a new expense transaction for the SIP investment
@@ -99,4 +99,70 @@ export const processSIPInvestment = async (userId: string, fundName: string, amo
     console.error("Error processing SIP investment:", error);
     throw error;
   }
+};
+
+// Group transactions by category for pie charts
+export const groupTransactionsByCategory = (transactions: Transaction[]) => {
+  // Get all expense transactions
+  const expenseTransactions = transactions.filter(t => t.type === 'expense');
+  
+  // Group by category and sum amounts
+  const groupedExpenses = expenseTransactions.reduce((acc, transaction) => {
+    const category = transaction.category;
+    if (!acc[category]) {
+      acc[category] = 0;
+    }
+    acc[category] += transaction.amount;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  // Convert to array format for charts
+  return Object.entries(groupedExpenses).map(([name, value]) => ({
+    name,
+    value
+  })).filter(item => item.value > 0);
+};
+
+// Process available SIPs from transactions
+export const getAvailableSIPs = (transactions: Transaction[]) => {
+  const sipTransactions = transactions.filter(t => 
+    t.type === 'expense' && 
+    (t.category === 'SIP Investments' || t.description.includes('SIP'))
+  );
+  
+  const sipMapping: Record<string, { total: number, count: number, lastDate: string }> = {};
+  
+  // Group SIPs by fund name
+  sipTransactions.forEach(transaction => {
+    // Extract fund name from description
+    const match = transaction.description.match(/SIP Investment in (.+)/) || 
+                 transaction.description.match(/Investment in (.+) SIP/);
+    
+    const fundName = match ? match[1] : 'Unknown Fund';
+    
+    if (!sipMapping[fundName]) {
+      sipMapping[fundName] = {
+        total: 0,
+        count: 0,
+        lastDate: transaction.date
+      };
+    }
+    
+    sipMapping[fundName].total += transaction.amount;
+    sipMapping[fundName].count += 1;
+    
+    // Update last date if this transaction is more recent
+    if (new Date(transaction.date) > new Date(sipMapping[fundName].lastDate)) {
+      sipMapping[fundName].lastDate = transaction.date;
+    }
+  });
+  
+  // Convert to array format
+  return Object.entries(sipMapping).map(([fundName, data]) => ({
+    fundName,
+    totalInvested: data.total,
+    numberOfInvestments: data.count,
+    averageInvestment: data.total / data.count,
+    lastInvestmentDate: data.lastDate
+  }));
 };

@@ -5,7 +5,7 @@ import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { 
   AreaChart, PieChart, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, 
-  Tooltip, Area, Cell, Pie, Legend, Bar, Line, LineChart 
+  Tooltip as RechartsTooltip, Area, Cell, Pie, Legend, Bar, Line, LineChart 
 } from "recharts";
 import { formatCurrency } from "@/utils/formatting";
 import { Category, Budget, Transaction } from "@/utils/mockData";
@@ -53,7 +53,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
         const estimatedBudget = (category.budget || 0) / 3000 * (userIncome / 12);
         return {
           name: category.name,
-          value: 0, // No actual value, just for chart rendering
+          value: Math.round(estimatedBudget),
           budget: Math.round(estimatedBudget),
           id: category.id
         };
@@ -61,7 +61,9 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
   };
   
   const chartData = React.useMemo(() => {
-    return expenseByCategory.length > 0 ? expenseByCategory : generateBudgetEstimates();
+    const data = expenseByCategory.length > 0 ? expenseByCategory : generateBudgetEstimates();
+    console.log("Chart data:", data);
+    return data;
   }, [expenseByCategory, userIncome]);
   
   // Generate daily spending data based on actual transactions
@@ -120,6 +122,11 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
   // Custom tooltip formatter function for consistent formatting
   const tooltipFormatter = (value: number) => [formatCurrency(value), "Amount"];
 
+  // Handle empty data states
+  const hasChartData = chartData && chartData.length > 0;
+  const has30DayData = last30Days && last30Days.some(day => day.amount > 0);
+  const hasBudgetData = budgetVsActual && budgetVsActual.length > 0;
+
   return (
     <Tabs defaultValue="overview" className="w-full">
       <TabsList className="mb-4">
@@ -139,31 +146,39 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => 
-                      percent > 0.01 ? `${name}: ${(percent * 100).toFixed(0)}%` : `${name}`
-                    }
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: number) => [formatCurrency(value), "Amount"]}
-                  />
-                  <Legend />
-                </PieChart>
+                {hasChartData ? (
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, percent }) => 
+                        percent > 0.01 ? `${name}: ${(percent * 100).toFixed(0)}%` : `${name}`
+                      }
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      formatter={tooltipFormatter}
+                    />
+                    <Legend />
+                  </PieChart>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <p className="text-muted-foreground text-center">
+                      No spending data available yet. Add transactions to see your spending breakdown.
+                    </p>
+                  </div>
+                )}
               </ResponsiveContainer>
             </div>
           </CardContent>
@@ -179,40 +194,48 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={last30Days}
-                  margin={{
-                    top: 5,
-                    right: 30,
-                    left: 20,
-                    bottom: 25,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12 }}
-                    tickMargin={10}
-                    angle={-45}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) =>
-                      value === 0 ? "0" : `₹${value}`
-                    }
-                  />
-                  <Tooltip
-                    formatter={(value: number) => [formatCurrency(value), "Spent"]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="amount"
-                    stroke="#0EA5E9"
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
+                {has30DayData ? (
+                  <LineChart
+                    data={last30Days}
+                    margin={{
+                      top: 5,
+                      right: 30,
+                      left: 20,
+                      bottom: 25,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 12 }}
+                      tickMargin={10}
+                      angle={-45}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) =>
+                        value === 0 ? "0" : `₹${value}`
+                      }
+                    />
+                    <RechartsTooltip
+                      formatter={tooltipFormatter}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="amount"
+                      stroke="#0EA5E9"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <p className="text-muted-foreground text-center">
+                      No daily spending data available yet. Add transactions to see your daily spending.
+                    </p>
+                  </div>
+                )}
               </ResponsiveContainer>
             </div>
           </CardContent>
@@ -230,42 +253,50 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
           <CardContent>
             <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  layout="vertical"
-                  margin={{
-                    top: 5,
-                    right: 30,
-                    left: 80,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                  <XAxis
-                    type="number"
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) =>
-                      value === 0 ? "0" : `₹${value}`
-                    }
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    tick={{ fontSize: 12 }}
-                    width={80}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => [formatCurrency(value), "Spent"]}
-                  />
-                  <Bar dataKey="value" fill="#0EA5E9">
-                    {chartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
+                {hasChartData ? (
+                  <BarChart
+                    data={chartData}
+                    layout="vertical"
+                    margin={{
+                      top: 5,
+                      right: 30,
+                      left: 80,
+                      bottom: 5,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                    <XAxis
+                      type="number"
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) =>
+                        value === 0 ? "0" : `₹${value}`
+                      }
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tick={{ fontSize: 12 }}
+                      width={80}
+                    />
+                    <RechartsTooltip
+                      formatter={tooltipFormatter}
+                    />
+                    <Bar dataKey="value" fill="#0EA5E9">
+                      {chartData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <p className="text-muted-foreground text-center">
+                      No spending data available yet. Add transactions to see your spending by category.
+                    </p>
+                  </div>
+                )}
               </ResponsiveContainer>
             </div>
           </CardContent>
@@ -283,43 +314,51 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
           <CardContent>
             <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={budgetVsActual}
-                  margin={{
-                    top: 20,
-                    right: 30,
-                    left: 20,
-                    bottom: 25,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 12 }}
-                    tickMargin={10}
-                    angle={-45}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) =>
-                      value === 0 ? "0" : `₹${value}`
-                    }
-                  />
-                  <Tooltip
-                    formatter={tooltipFormatter}
-                  />
-                  <Legend />
-                  <Bar
-                    dataKey="budget"
-                    fill="#8B5CF6"
-                    name="Budget"
-                  />
-                  <Bar
-                    dataKey="spent"
-                    fill="#10B981"
-                    name="Actual"
-                  />
-                </BarChart>
+                {hasBudgetData ? (
+                  <BarChart
+                    data={budgetVsActual}
+                    margin={{
+                      top: 20,
+                      right: 30,
+                      left: 20,
+                      bottom: 25,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 12 }}
+                      tickMargin={10}
+                      angle={-45}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) =>
+                        value === 0 ? "0" : `₹${value}`
+                      }
+                    />
+                    <RechartsTooltip
+                      formatter={tooltipFormatter}
+                    />
+                    <Legend />
+                    <Bar
+                      dataKey="budget"
+                      fill="#8B5CF6"
+                      name="Budget"
+                    />
+                    <Bar
+                      dataKey="spent"
+                      fill="#10B981"
+                      name="Actual"
+                    />
+                  </BarChart>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <p className="text-muted-foreground text-center">
+                      No budget data available yet. Create a budget to compare with your spending.
+                    </p>
+                  </div>
+                )}
               </ResponsiveContainer>
             </div>
           </CardContent>
