@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -371,11 +371,11 @@ const SIPTracker = () => {
                               tickFormatter={(value) => `₹${value}`}
                               domain={['auto', 'auto']}
                             />
-                            <ChartTooltip>
-                              <ChartTooltipContent 
+                            <RechartsTooltip
+                              content={<ChartTooltipContent 
                                 formatter={(value) => [`₹${value}`, "NAV"]}
-                              />
-                            </ChartTooltip>
+                              />}
+                            />
                             <Line 
                               type="monotone" 
                               dataKey="nav" 
