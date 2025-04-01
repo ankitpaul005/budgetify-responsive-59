@@ -1,17 +1,17 @@
 
-// Currency conversion rates against USD
+// Currency conversion rates against USD (as of August 2024)
 export const currencyRates: Record<string, number> = {
   USD: 1,
-  INR: 1,
-  EUR: 1,
-  GBP: 1,
-  JPY: 1,
-  CAD: 1,
-  AUD: 1,
-  SGD: 1,
-  AED: 1,
-  CNY: 1,
-  BTC: 1, // Approximate - this would need regular updates
+  INR: 83.2,      // 1 USD = 83.2 INR
+  EUR: 0.92,      // 1 USD = 0.92 EUR
+  GBP: 0.78,      // 1 USD = 0.78 GBP
+  JPY: 149.2,     // 1 USD = 149.2 JPY
+  CAD: 1.36,      // 1 USD = 1.36 CAD
+  AUD: 1.52,      // 1 USD = 1.52 AUD
+  SGD: 1.35,      // 1 USD = 1.35 SGD
+  AED: 3.67,      // 1 USD = 3.67 AED
+  CNY: 7.15,      // 1 USD = 7.15 CNY
+  BTC: 0.000016,  // 1 USD = 0.000016 BTC (approximate)
 };
 
 // Currency symbols
@@ -31,11 +31,11 @@ export const currencySymbols: Record<string, string> = {
 
 // Format currency with conversion support
 export const formatCurrency = (amount: number, currency = "INR") => {
-  let convertedAmount = amount;
-  
-  // No conversion - use the original amount directly
-  
-  // Format based on currency
+  // No need to convert if using the default currency or no currency specified
+  if (!currency) {
+    currency = "INR";
+  }
+
   let formatter: Intl.NumberFormat;
   
   switch (currency) {
@@ -57,7 +57,7 @@ export const formatCurrency = (amount: number, currency = "INR") => {
       break;
     case "BTC":
       // For BTC, just use the symbol and a fixed format
-      return `₿${convertedAmount.toFixed(8)}`;
+      return `₿${amount.toFixed(8)}`;
     default:
       formatter = new Intl.NumberFormat("en-US", {
         style: "currency",
@@ -67,7 +67,7 @@ export const formatCurrency = (amount: number, currency = "INR") => {
       });
   }
   
-  return formatter.format(convertedAmount);
+  return formatter.format(amount);
 };
 
 // Format percentage
@@ -79,8 +79,15 @@ export const formatPercent = (percent: number) => {
   }).format(percent / 100);
 };
 
-// Convert amount between currencies - no longer does any conversion
+// Convert amount between currencies - now with proper conversion rates
 export const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string): number => {
-  // Simply return the original amount without any conversion
-  return amount;
+  if (fromCurrency === toCurrency) {
+    return amount;
+  }
+  
+  // Convert from the source currency to USD first (if not already USD)
+  const valueInUSD = fromCurrency === "USD" ? amount : amount / currencyRates[fromCurrency];
+  
+  // Then convert from USD to the target currency
+  return valueInUSD * currencyRates[toCurrency];
 };

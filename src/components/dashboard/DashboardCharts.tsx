@@ -27,16 +27,19 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
   COLORS,
 }) => {
   // Create expense by category data only for categories that have transactions
-  const expenseByCategory = categories.map((category) => {
-    const total = transactions
-      .filter((t) => t.category === category.id && t.type === "expense")
-      .reduce((sum, t) => sum + t.amount, 0);
-      
-    return {
-      name: category.name,
-      value: total,
-    };
-  }).filter((item) => item.value > 0);
+  const expenseByCategory = React.useMemo(() => {
+    return categories.map((category) => {
+      const total = transactions
+        .filter((t) => t.category === category.id && t.type === "expense")
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+      return {
+        name: category.name,
+        value: total,
+        id: category.id
+      };
+    }).filter((item) => item.value > 0);
+  }, [categories, transactions]);
   
   // Use monthly income to generate estimated category budgets for empty charts
   const generateBudgetEstimates = () => {
@@ -51,29 +54,34 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
         return {
           name: category.name,
           value: 0, // No actual value, just for chart rendering
-          budget: Math.round(estimatedBudget)
+          budget: Math.round(estimatedBudget),
+          id: category.id
         };
       });
   };
   
-  const chartData = expenseByCategory.length > 0 ? expenseByCategory : generateBudgetEstimates();
+  const chartData = React.useMemo(() => {
+    return expenseByCategory.length > 0 ? expenseByCategory : generateBudgetEstimates();
+  }, [expenseByCategory, userIncome]);
   
   // Generate daily spending data based on actual transactions
-  const last30Days = Array.from({ length: 30 }, (_, i) => {
-    const date = subDays(new Date(), 29 - i);
-    const dayTransactions = transactions.filter(
-      (t) =>
-        t.type === "expense" &&
-        format(parseISO(t.date), "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
-    );
-    
-    const totalSpent = dayTransactions.reduce((sum, t) => sum + t.amount, 0);
-    
-    return {
-      date: format(date, "MMM dd"),
-      amount: totalSpent,
-    };
-  });
+  const last30Days = React.useMemo(() => {
+    return Array.from({ length: 30 }, (_, i) => {
+      const date = subDays(new Date(), 29 - i);
+      const dayTransactions = transactions.filter(
+        (t) =>
+          t.type === "expense" &&
+          format(parseISO(t.date), "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
+      );
+      
+      const totalSpent = dayTransactions.reduce((sum, t) => sum + t.amount, 0);
+      
+      return {
+        date: format(date, "MMM dd"),
+        amount: totalSpent,
+      };
+    });
+  }, [transactions]);
   
   // Generate budget vs actual data based on income if no transactions
   const generateBudgetVsActual = () => {
@@ -105,7 +113,12 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
     return result.filter(item => item.budget > 0 || item.spent > 0);
   };
   
-  const budgetVsActual = generateBudgetVsActual();
+  const budgetVsActual = React.useMemo(() => {
+    return generateBudgetVsActual();
+  }, [categories, budget, transactions, userIncome]);
+
+  // Custom tooltip formatter function for consistent formatting
+  const tooltipFormatter = (value: number) => [formatCurrency(value), "Amount"];
 
   return (
     <Tabs defaultValue="overview" className="w-full">
@@ -136,7 +149,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
                     fill="#8884d8"
                     dataKey="value"
                     label={({ name, percent }) => 
-                      percent > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : `${name}`
+                      percent > 0.01 ? `${name}: ${(percent * 100).toFixed(0)}%` : `${name}`
                     }
                   >
                     {chartData.map((entry, index) => (
@@ -147,10 +160,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => [
-                      formatCurrency(value),
-                      "Amount",
-                    ]}
+                    formatter={(value: number) => [formatCurrency(value), "Amount"]}
                   />
                   <Legend />
                 </PieChart>
@@ -192,10 +202,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
                     }
                   />
                   <Tooltip
-                    formatter={(value: number) => [
-                      formatCurrency(value),
-                      "Spent",
-                    ]}
+                    formatter={(value: number) => [formatCurrency(value), "Spent"]}
                   />
                   <Line
                     type="monotone"
@@ -248,10 +255,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
                     width={80}
                   />
                   <Tooltip
-                    formatter={(value: number) => [
-                      formatCurrency(value),
-                      "Spent",
-                    ]}
+                    formatter={(value: number) => [formatCurrency(value), "Spent"]}
                   />
                   <Bar dataKey="value" fill="#0EA5E9">
                     {chartData.map((entry, index) => (
@@ -302,10 +306,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
                     }
                   />
                   <Tooltip
-                    formatter={(value: number) => [
-                      formatCurrency(value),
-                      "Amount",
-                    ]}
+                    formatter={tooltipFormatter}
                   />
                   <Legend />
                   <Bar
