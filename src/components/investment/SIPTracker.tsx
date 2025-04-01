@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,6 +17,8 @@ import { useAuth } from "@/context/AuthContext";
 import { processSIPInvestment } from "@/utils/dashboardUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/utils/formatting";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 // Fetch SIP data from the Supabase Edge Function
 const fetchSIPData = async (categories?: string[]) => {
@@ -395,7 +397,16 @@ const SIPTracker = () => {
                 
                 <div className="bg-muted/30 p-4 rounded-md">
                   <div className="flex items-start gap-2">
-                    <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">Past performance does not guarantee future results</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     <div>
                       <h4 className="text-sm font-medium mb-1">About this fund</h4>
                       <p className="text-sm text-muted-foreground">
