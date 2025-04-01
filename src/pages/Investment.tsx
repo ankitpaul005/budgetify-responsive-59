@@ -24,7 +24,7 @@ import SIPTracker from "@/components/investment/SIPTracker";
 import SimpleInvestmentForm from "@/components/investment/SimpleInvestmentForm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader, Refresh } from "lucide-react";
+import { Loader, RefreshCw } from "lucide-react";
 import { fetchLiveExchangeRates } from "@/utils/formatting";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
