@@ -20,6 +20,7 @@ import {
 import { groupTransactionsByCategory, groupTransactionsByMonth } from "@/utils/dashboardUtils";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { addMonths, format, startOfMonth, endOfMonth, subMonths, isWithinInterval } from "date-fns";
+import { motion } from "framer-motion";
 
 interface DashboardChartsProps {
   transactions: Transaction[];
@@ -89,6 +90,12 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
     percentage: totalExpenses > 0 ? ((item.value / totalExpenses) * 100).toFixed(1) : 0,
   }));
 
+  // Animation variants for motion
+  const fadeIn = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+  };
+
   return (
     <div className="space-y-4">
       <Tabs defaultValue="expenses" className="w-full">
@@ -98,106 +105,118 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
         </TabsList>
         
         <TabsContent value="expenses" className="w-full">
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Month Spending</CardTitle>
-              <CardDescription>
-                Breakdown of expenses by category for {format(currentDate, 'MMMM yyyy')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {pieChartData.length > 0 ? (
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieChartDataWithPercentage}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        nameKey="name"
-                        label={({ name, percentage }) => `${name}: ${percentage}%`}
-                      >
-                        {pieChartDataWithPercentage.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            const data = payload[0].payload;
-                            return (
-                              <div className="bg-background border border-border p-2 rounded-md shadow-md">
-                                <p className="font-semibold">{data.name}</p>
-                                <p>{formatCurrency(data.value)}</p>
-                                <p>{data.percentage}% of total</p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <div className="h-80 flex items-center justify-center">
-                  <p className="text-muted-foreground text-center">
-                    No expense data available for this month. Add transactions to see your spending breakdown.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={fadeIn}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Current Month Spending</CardTitle>
+                <CardDescription>
+                  Breakdown of expenses by category for {format(currentDate, 'MMMM yyyy')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {pieChartData.length > 0 ? (
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieChartDataWithPercentage}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          nameKey="name"
+                          label={({ name, percentage }) => `${name}: ${percentage}%`}
+                        >
+                          {pieChartDataWithPercentage.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className="bg-background border border-border p-2 rounded-md shadow-md">
+                                  <p className="font-semibold">{data.name}</p>
+                                  <p>{formatCurrency(data.value)}</p>
+                                  <p>{data.percentage}% of total</p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-80 flex items-center justify-center">
+                    <p className="text-muted-foreground text-center">
+                      No expense data available for this month. Add transactions to see your spending breakdown.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         </TabsContent>
         
         <TabsContent value="overview">
-          <Card>
-            <CardHeader>
-              <CardTitle>Income vs. Expenses</CardTitle>
-              <CardDescription>
-                Monthly comparison of your income and expenses
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {barChartData.length > 0 ? (
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={barChartData}
-                      margin={{
-                        top: 20,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis tickFormatter={(value) => formatCurrency(value).replace(/\.\d+/, '')} />
-                      <Tooltip
-                        formatter={(value) => formatCurrency(value as number)}
-                        labelFormatter={(label) => `Month: ${label}`}
-                      />
-                      <Legend />
-                      <Bar dataKey="Income" fill="#10B981" />
-                      <Bar dataKey="Expenses" fill="#EF4444" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <div className="h-80 flex items-center justify-center">
-                  <p className="text-muted-foreground text-center">
-                    No transaction data available. Add transactions to see your monthly overview.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={fadeIn}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Income vs. Expenses</CardTitle>
+                <CardDescription>
+                  Monthly comparison of your income and expenses
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {barChartData.length > 0 ? (
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={barChartData}
+                        margin={{
+                          top: 20,
+                          right: 30,
+                          left: 20,
+                          bottom: 5,
+                        }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis tickFormatter={(value) => formatCurrency(value).replace(/\.\d+/, '')} />
+                        <Tooltip
+                          formatter={(value) => formatCurrency(value as number)}
+                          labelFormatter={(label) => `Month: ${label}`}
+                        />
+                        <Legend />
+                        <Bar dataKey="Income" fill="#10B981" />
+                        <Bar dataKey="Expenses" fill="#EF4444" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-80 flex items-center justify-center">
+                    <p className="text-muted-foreground text-center">
+                      No transaction data available. Add transactions to see your monthly overview.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         </TabsContent>
       </Tabs>
     </div>

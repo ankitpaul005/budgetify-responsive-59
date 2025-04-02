@@ -1,3 +1,4 @@
+
 import { Transaction } from "@/utils/mockData";
 import { format, isWithinInterval, startOfMonth, endOfMonth, subMonths } from "date-fns";
 
@@ -108,7 +109,7 @@ export const groupTransactionsByCategory = (transactions: Transaction[]) => {
   
   // Group by category and sum amounts
   const groupedExpenses = expenseTransactions.reduce((acc, transaction) => {
-    const category = transaction.category;
+    const category = transaction.category || "Uncategorized";
     if (!acc[category]) {
       acc[category] = 0;
     }
