@@ -2,13 +2,14 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { User, Lock, Mail, Phone, Loader, ArrowRight, Check } from "lucide-react";
+import { User, Lock, Mail, Phone, Loader, ArrowRight, Check, AlertTriangle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 
 const SignUpPage = () => {
   const [name, setName] = useState("");
@@ -19,6 +20,7 @@ const SignUpPage = () => {
   const [verificationCode, setVerificationCode] = useState("");
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPhoneLoading, setIsPhoneLoading] = useState(false);
   const { signup, isAuthenticated, updateUserPhoneNumber } = useAuth();
   const navigate = useNavigate();
   
@@ -81,35 +83,80 @@ const SignUpPage = () => {
   }, [password]);
   
   // Handle phone verification
-  const handleVerifyPhone = () => {
+  const handleVerifyPhone = async () => {
     // Validate phone number
     const phoneRegex = /^\+?[1-9]\d{9,14}$/;
     
     if (!phoneRegex.test(phoneNumber)) {
-      toast.error("Please enter a valid phone number");
+      toast.error("Please enter a valid phone number with country code (e.g., +1234567890)");
       return;
     }
     
-    setIsVerifyingPhone(true);
-    
-    // Simulate sending verification code
-    toast.info("Verification code sent to your phone");
+    try {
+      setIsPhoneLoading(true);
+      
+      // Use Supabase phone OTP authentication
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: phoneNumber,
+        options: {
+          shouldCreateUser: false,
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      setIsVerifyingPhone(true);
+      toast.success("Verification code sent to your phone", {
+        description: "Enter the 6-digit code you received"
+      });
+    } catch (error) {
+      console.error("Error sending verification code:", error);
+      toast.error("Failed to send verification code", {
+        description: error.message || "Please try again later",
+        icon: <AlertTriangle className="h-5 w-5 text-destructive" />
+      });
+    } finally {
+      setIsPhoneLoading(false);
+    }
   };
   
   // Handle code verification
-  const handleCodeVerification = () => {
-    // Simulate code verification
-    if (verificationCode.length !== 6) {
+  const handleCodeVerification = async () => {
+    // Check code format
+    if (verificationCode.length !== 6 || !/^\d+$/.test(verificationCode)) {
       toast.error("Please enter a valid 6-digit code");
       return;
     }
     
-    // Mock verification - in a real app, this would call an API
-    if (verificationCode === "123456") {
+    try {
+      setIsPhoneLoading(true);
+      
+      // Verify OTP
+      const { error } = await supabase.auth.verifyOtp({
+        phone: phoneNumber,
+        token: verificationCode,
+        type: 'sms'
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Successfully verified
       setPhoneVerified(true);
-      toast.success("Phone number verified successfully");
-    } else {
-      toast.error("Invalid verification code");
+      toast.success("Phone number verified successfully", {
+        icon: <Check className="h-5 w-5 text-green-500" />
+      });
+    } catch (error) {
+      console.error("Error verifying code:", error);
+      toast.error("Invalid verification code", {
+        description: error.message || "Please try again with the correct code",
+        icon: <AlertTriangle className="h-5 w-5 text-destructive" />
+      });
+    } finally {
+      setIsPhoneLoading(false);
     }
   };
   
@@ -134,15 +181,29 @@ const SignUpPage = () => {
       if (phoneVerified && phoneNumber) {
         try {
           await updateUserPhoneNumber(phoneNumber);
+          toast.success("Phone number added to your profile", {
+            description: "You can use it for two-factor authentication"
+          });
         } catch (error) {
           console.error("Error updating phone number:", error);
+          toast.error("Could not add phone number to your profile", {
+            description: "You can add it later in settings"
+          });
         }
       }
+      
+      toast.success("Account created successfully", {
+        description: "Welcome to Budgetify!",
+        icon: <Check className="h-5 w-5 text-green-500" />
+      });
       
       // Navigation is handled inside signup function
     } catch (error) {
       console.error("Signup error:", error);
-      // Toast is handled in the signup function
+      toast.error("Failed to create account", {
+        description: error.message || "Please try again later",
+        icon: <AlertTriangle className="h-5 w-5 text-destructive" />
+      });
     } finally {
       setIsLoading(false);
     }
@@ -295,6 +356,17 @@ const SignUpPage = () => {
                   )}
                 </Button>
               </motion.div>
+              
+              {phoneVerified && (
+                <motion.div 
+                  className="flex items-center p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm text-green-700 dark:text-green-300"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Check className="h-4 w-4 mr-2 text-green-500" />
+                  Phone number verified for 2FA
+                </motion.div>
+              )}
             </motion.form>
           </TabsContent>
           
@@ -302,6 +374,15 @@ const SignUpPage = () => {
             <motion.div className="space-y-6" variants={containerVariants}>
               {!isVerifyingPhone ? (
                 <motion.div className="space-y-4" variants={containerVariants}>
+                  <motion.div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md mb-4" variants={itemVariants}>
+                    <div className="flex">
+                      <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5 mr-2" />
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        Add your phone number for two-factor authentication to increase your account security.
+                      </p>
+                    </div>
+                  </motion.div>
+                  
                   <motion.div variants={itemVariants}>
                     <Label htmlFor="phone">Phone Number</Label>
                     <div className="mt-1 relative rounded-md shadow-sm">
@@ -318,16 +399,26 @@ const SignUpPage = () => {
                         onChange={(e) => setPhoneNumber(e.target.value)}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">Enter your phone number with country code</p>
+                    <p className="text-xs text-muted-foreground mt-1">Enter your phone number with country code (e.g., +1234567890)</p>
                   </motion.div>
                   
                   <motion.div variants={itemVariants}>
                     <Button
                       onClick={handleVerifyPhone}
                       className="w-full flex justify-center items-center py-6"
+                      disabled={isPhoneLoading}
                     >
-                      Send Verification Code
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      {isPhoneLoading ? (
+                        <>
+                          <Loader className="animate-spin mr-2" />
+                          Sending code...
+                        </>
+                      ) : (
+                        <>
+                          Send Verification Code
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
                     </Button>
                   </motion.div>
                 </motion.div>
@@ -383,14 +474,23 @@ const SignUpPage = () => {
                       variant="outline"
                       onClick={() => setIsVerifyingPhone(false)}
                       className="flex-1"
+                      disabled={isPhoneLoading}
                     >
                       Back
                     </Button>
                     <Button
                       onClick={handleCodeVerification}
                       className="flex-1"
+                      disabled={isPhoneLoading}
                     >
-                      Verify Code
+                      {isPhoneLoading ? (
+                        <>
+                          <Loader className="animate-spin mr-2 h-4 w-4" />
+                          Verifying...
+                        </>
+                      ) : (
+                        "Verify Code"
+                      )}
                     </Button>
                   </motion.div>
                   
@@ -403,6 +503,7 @@ const SignUpPage = () => {
                       type="button"
                       className="text-primary hover:underline"
                       onClick={handleVerifyPhone}
+                      disabled={isPhoneLoading}
                     >
                       Resend
                     </button>
