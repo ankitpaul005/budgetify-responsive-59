@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -253,7 +252,7 @@ const InvestmentPortfolio: React.FC<InvestmentPortfolioProps> = ({
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="date" />
-                <YAxis tickFormatter={(value) => formatCurrency(value, currency, true)} />
+                <YAxis tickFormatter={(value) => formatCurrency(value, currency)} />
                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                 <Tooltip
                   formatter={(value) => [formatCurrency(Number(value), currency), "Value"]}
