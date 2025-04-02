@@ -17,10 +17,13 @@ import SettingsPage from "./pages/Settings";
 import LoginPage from "./pages/Login";
 import SignUpPage from "./pages/SignUp";
 import NotFoundPage from "./pages/NotFound";
+import PrivacyPolicyPage from "./pages/PrivacyPolicy";
+import TermsOfServicePage from "./pages/TermsOfService";
+import AboutPage from "./pages/About";
+import ContactPage from "./pages/Contact";
 import ChatbotDialog from "./components/chat/ChatbotDialog";
 import VoiceCommandListener from "./components/voice/VoiceCommandListener";
 import SignupPrompt from "./components/auth/SignupPrompt";
-import Layout from "./components/Layout";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -40,6 +43,11 @@ function App() {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignUpPage />} />
+              {/* New routes for footer pages */}
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms" element={<TermsOfServicePage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/contact" element={<ContactPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
             <SignupPrompt />
