@@ -7,7 +7,7 @@ export const categorizeTransactions = (
 ) => {
   return transactions.map((transaction) => {
     const matchingCategory = categories.find(
-      (cat) => cat.id === transaction.category_id
+      (cat) => cat.id === transaction.category
     );
     return {
       ...transaction,

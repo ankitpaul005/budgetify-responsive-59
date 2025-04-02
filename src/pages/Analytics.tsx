@@ -54,7 +54,6 @@ const AnalyticsPage = () => {
     "#a855f7",
   ]);
 
-  // Fetch all transactions from Supabase
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ["transactions", user?.id],
     queryFn: async () => {
@@ -76,7 +75,6 @@ const AnalyticsPage = () => {
     enabled: !!user,
   });
 
-  // Get categories and investments from localStorage
   const [categories] = useLocalStorage<Category[]>(
     `budgetify-categories-${user?.id || "demo"}`,
     []
@@ -87,14 +85,12 @@ const AnalyticsPage = () => {
     []
   );
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
     }
   }, [isAuthenticated, navigate]);
 
-  // Process transaction data
   useEffect(() => {
     if (transactions.length > 0) {
       const categorized = categorizeTransactions(transactions, categories);
@@ -102,12 +98,10 @@ const AnalyticsPage = () => {
     }
   }, [transactions, categories]);
 
-  // Calculate financial summary
   const summary = useMemo(() => {
     return calculateSummary(transactions, userProfile?.total_income || 0);
   }, [transactions, userProfile?.total_income]);
 
-  // Filter transactions by time period
   const filteredTransactions = useMemo(() => {
     const currentDate = new Date();
     let fromDate = new Date();
@@ -136,14 +130,12 @@ const AnalyticsPage = () => {
     );
   }, [transactions, timeFilter]);
   
-  // Group transactions by category
   const expensesByCategory = useMemo(() => {
     const grouped = groupTransactionsByCategory(filteredTransactions.filter(t => t.type === "expense"));
     
-    // Convert to array format for chart with proper sorting
     return Object.entries(grouped)
       .map(([name, value]) => ({
-        name: name || "Uncategorized", // Replace empty categories with "Uncategorized"
+        name: name || "Uncategorized",
         value
       }))
       .filter(item => item.value > 0)
@@ -151,7 +143,6 @@ const AnalyticsPage = () => {
         if (sortBy === "amount") {
           return sortOrder === "desc" ? b.value - a.value : a.value - b.value;
         } else {
-          // Sort by name
           return sortOrder === "desc" 
             ? b.name.localeCompare(a.name) 
             : a.name.localeCompare(b.name);
@@ -159,12 +150,10 @@ const AnalyticsPage = () => {
       });
   }, [filteredTransactions, sortBy, sortOrder]);
   
-  // Group transactions by date
   const transactionsByDate = useMemo(() => {
     return groupTransactionsByDate(filteredTransactions);
   }, [filteredTransactions]);
   
-  // Convert to arrays for charts
   const dateLabels = Object.keys(transactionsByDate);
   const incomeData = dateLabels.map(date => ({
     date,
@@ -176,7 +165,6 @@ const AnalyticsPage = () => {
     value: transactionsByDate[date].expense
   }));
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
@@ -233,13 +221,11 @@ const AnalyticsPage = () => {
           </div>
         </motion.div>
         
-        {/* Investment Portfolio Section */}
         <InvestmentPortfolio 
           investments={investments}
           COLORS={COLORS}
         />
         
-        {/* Financial Summary Cards */}
         <motion.div 
           className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
           variants={itemVariants}
@@ -290,7 +276,6 @@ const AnalyticsPage = () => {
           </Card>
         </motion.div>
         
-        {/* Charts Section */}
         <motion.div variants={containerVariants}>
           <Tabs defaultValue="expenses" className="w-full">
             <TabsList className="grid grid-cols-2 mb-6">
@@ -345,7 +330,6 @@ const AnalyticsPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      {/* Pie Chart */}
                       <div className="h-80">
                         {expensesByCategory.length > 0 ? (
                           <ResponsiveContainer width="100%" height="100%">
@@ -376,7 +360,6 @@ const AnalyticsPage = () => {
                         )}
                       </div>
                       
-                      {/* Category Table */}
                       <div className="overflow-auto max-h-80">
                         <table className="w-full">
                           <thead>
@@ -455,7 +438,7 @@ const AnalyticsPage = () => {
                               tick={{ fontSize: 12 }}
                             />
                             <YAxis 
-                              tickFormatter={(value) => formatCurrency(value, undefined, true)} 
+                              tickFormatter={(value) => formatCurrency(value)} 
                             />
                             <Tooltip 
                               formatter={(value) => [formatCurrency(Number(value)), "Amount"]}
