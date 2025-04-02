@@ -350,7 +350,13 @@ const SignUpPage = () => {
                   >
                     Change Number
                   </Button>
-                  <Button onClick={() => document.querySelector('[data-value="email"]')?.click()}>
+                  <Button onClick={() => {
+                    // Fixed: Use proper TypeScript casting for the HTMLElement
+                    const emailTab = document.querySelector('[data-value="email"]') as HTMLElement;
+                    if (emailTab) {
+                      emailTab.click();
+                    }
+                  }}>
                     Continue to Signup
                   </Button>
                 </motion.div>
