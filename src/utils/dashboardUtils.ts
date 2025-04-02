@@ -1,5 +1,5 @@
-
 import { Transaction } from "@/utils/mockData";
+import { format, isWithinInterval, startOfMonth, endOfMonth, subMonths } from "date-fns";
 
 export const calculateSummary = (transactions: Transaction[], userIncome: number = 0) => {
   console.log("Calculating summary with income:", userIncome, "and transactions:", transactions);
@@ -116,11 +116,35 @@ export const groupTransactionsByCategory = (transactions: Transaction[]) => {
     return acc;
   }, {} as Record<string, number>);
   
-  // Convert to array format for charts
-  return Object.entries(groupedExpenses).map(([name, value]) => ({
-    name,
-    value
-  })).filter(item => item.value > 0);
+  return groupedExpenses;
+};
+
+// Group transactions by month for bar charts
+export const groupTransactionsByMonth = (transactions: Transaction[]) => {
+  const monthlyData: Record<string, { income: number; expenses: number }> = {};
+  
+  // Sort transactions by date
+  const sortedTransactions = [...transactions].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+  
+  // Group by month
+  sortedTransactions.forEach(transaction => {
+    const date = new Date(transaction.date);
+    const monthKey = format(date, 'MMM yyyy');
+    
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = { income: 0, expenses: 0 };
+    }
+    
+    if (transaction.type === 'income') {
+      monthlyData[monthKey].income += transaction.amount;
+    } else {
+      monthlyData[monthKey].expenses += transaction.amount;
+    }
+  });
+  
+  return monthlyData;
 };
 
 // Process available SIPs from transactions

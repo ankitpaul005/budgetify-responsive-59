@@ -16,7 +16,6 @@ import {
   Pie,
   Cell,
   Legend,
-  TooltipProps,
 } from "recharts";
 import { groupTransactionsByCategory, groupTransactionsByMonth } from "@/utils/dashboardUtils";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -82,15 +81,13 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
     Expenses: data.expenses,
   }));
   
-  // Calculate spending by category as percentages
+  // Calculate total expenses
   const totalExpenses = pieChartData.reduce((sum, item) => sum + item.value, 0);
   
   const pieChartDataWithPercentage = pieChartData.map(item => ({
     ...item,
     percentage: totalExpenses > 0 ? ((item.value / totalExpenses) * 100).toFixed(1) : 0,
   }));
-
-  // Removed sample data code for the monthly overview
 
   return (
     <div className="space-y-4">
