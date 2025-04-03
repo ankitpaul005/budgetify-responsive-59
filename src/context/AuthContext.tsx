@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useState,
@@ -74,6 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               description: "Welcome back to Budgetify!",
               icon: <LogIn className="h-5 w-5 text-green-500" />
             });
+            navigate("/dashboard");
           }
         } else {
           setUserProfile(null);
@@ -83,6 +83,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               description: "You have been logged out",
               icon: <LogOut className="h-5 w-5 text-green-500" />
             });
+            navigate("/login");
           }
         }
       }
@@ -93,17 +94,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
 
-        const currentPath = window.location.pathname;
-        if (session && !currentPath.includes("/login") && !currentPath.includes("/signup") && currentPath === "/") {
-          await supabase.auth.signOut({ scope: "local" });
-          setSession(null);
-          setUser(null);
-          setUserProfile(null);
-          console.log("Session cleared on landing page");
-        } else if (session?.user) {
+        if (session?.user) {
           setSession(session);
           setUser(session.user);
           await fetchUserProfile(session.user.id);
+          
+          // If on login page and already authenticated, redirect to dashboard
+          const currentPath = window.location.pathname;
+          if (currentPath === "/login" || currentPath === "/signup" || currentPath === "/") {
+            navigate("/dashboard");
+          }
         }
       } catch (error) {
         console.error("Error getting session:", error);
@@ -117,7 +117,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -213,14 +213,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) throw error;
       
-      // Toast notification is handled in the auth state change listener
-      navigate("/dashboard");
+      // Toast notification and navigation are handled in the auth state change listener
     } catch (error) {
       console.error("Login error:", error);
       toast.error("Login failed", {
         description: error.message || "Please check your credentials",
         icon: <AlertTriangle className="h-5 w-5 text-red-500" />
       });
+      throw error; // Rethrow so Login component can handle it
     } finally {
       setIsLoading(false);
     }

@@ -37,18 +37,30 @@ const LoginPage = () => {
     
     try {
       setIsLoading(true);
-      await login(email, password);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
       
       toast.success("Login successful", {
         description: "Welcome back to Budgetify!",
         icon: <Check className="h-5 w-5 text-green-500" />
       });
       
-      // Navigation is handled inside login function
+      navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
+      
+      // Handle specific error cases
+      let errorMessage = "Please check your credentials and try again";
+      if (error.message && error.message.includes("captcha")) {
+        errorMessage = "CAPTCHA verification failed. Please try again.";
+      }
+      
       toast.error("Login failed", {
-        description: error.message || "Please check your credentials and try again",
+        description: errorMessage,
         icon: <AlertTriangle className="h-5 w-5 text-red-500" />
       });
     } finally {
