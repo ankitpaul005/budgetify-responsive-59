@@ -2,14 +2,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { User, Lock, Loader, Check, AlertTriangle, Mail, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import HCaptcha from "@hcaptcha/react-hcaptcha";
+
+// Import our new components
+import LoginForm from "@/components/auth/LoginForm";
+import OTPVerificationForm from "@/components/auth/OTPVerificationForm";
+import AnimatedBackground from "@/components/auth/AnimatedBackground";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -64,8 +66,7 @@ const LoginPage = () => {
       if (error) throw error;
       
       toast.success("Login successful", {
-        description: "Welcome back to Budgetify!",
-        icon: <Check className="h-5 w-5 text-green-500" />
+        description: "Welcome back to Budgetify!"
       });
       
       navigate("/dashboard");
@@ -119,8 +120,7 @@ const LoginPage = () => {
       if (error) throw error;
       
       toast.success("Magic link and OTP sent!", {
-        description: "Please check your email inbox. You can either click the magic link or enter the OTP here.",
-        icon: <Mail className="h-5 w-5 text-green-500" />
+        description: "Please check your email inbox. You can either click the magic link or enter the OTP here."
       });
       
       // Show OTP input field
@@ -160,8 +160,7 @@ const LoginPage = () => {
       if (error) throw error;
       
       toast.success("OTP verified successfully", {
-        description: "You are being logged in",
-        icon: <Check className="h-5 w-5 text-green-500" />
+        description: "You are being logged in"
       });
       
       navigate("/dashboard");
@@ -222,27 +221,8 @@ const LoginPage = () => {
         animate="visible"
         variants={containerVariants}
       >
-        {/* Animated background elements */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <motion.div 
-            className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-gradient-to-br from-blue-200/30 to-transparent blur-3xl dark:from-blue-900/20"
-            animate={{ 
-              y: [0, 10, 0], 
-              scale: [1, 1.05, 1],
-              opacity: [0.4, 0.5, 0.4] 
-            }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          ></motion.div>
-          <motion.div 
-            className="absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-gradient-to-br from-green-200/30 to-transparent blur-3xl dark:from-green-900/20"
-            animate={{ 
-              y: [0, -10, 0], 
-              scale: [1, 1.05, 1],
-              opacity: [0.4, 0.5, 0.4] 
-            }}
-            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          ></motion.div>
-        </div>
+        {/* Animated background */}
+        <AnimatedBackground />
 
         <motion.div className="text-center" variants={itemVariants}>
           <motion.h1 
@@ -257,179 +237,30 @@ const LoginPage = () => {
         </motion.div>
         
         {isVerifyingOTP ? (
-          <motion.div 
-            className="space-y-6"
-            initial="hidden"
-            animate="visible"
-            variants={containerVariants}
-          >
-            <motion.div variants={itemVariants}>
-              <Label htmlFor="otp">Enter OTP Code</Label>
-              <div className="mt-1">
-                <Input
-                  id="otp"
-                  name="otp"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  placeholder="Enter 6-digit code"
-                  className="text-center tracking-widest text-lg"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                  maxLength={6}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Enter the 6-digit code sent to your email
-                </p>
-              </div>
-            </motion.div>
-            
-            <motion.div className="flex space-x-3" variants={itemVariants}>
-              <Button
-                variant="outline"
-                className="w-1/2"
-                onClick={() => setIsVerifyingOTP(false)}
-              >
-                Back
-              </Button>
-              <Button
-                className="w-1/2"
-                onClick={handleVerifyOTP}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader className="animate-spin mr-2 h-4 w-4" />
-                    Verifying...
-                  </>
-                ) : (
-                  "Verify OTP"
-                )}
-              </Button>
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <Button
-                variant="ghost"
-                onClick={handleSendMagicLink}
-                disabled={isSendingMagicLink}
-                className="w-full text-sm"
-              >
-                {isSendingMagicLink ? (
-                  <>
-                    <Loader className="animate-spin mr-2 h-4 w-4" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Resend OTP
-                  </>
-                )}
-              </Button>
-            </motion.div>
-          </motion.div>
+          <OTPVerificationForm 
+            email={email}
+            otpCode={otpCode}
+            setOtpCode={setOtpCode}
+            isLoading={isLoading}
+            isSendingMagicLink={isSendingMagicLink}
+            handleVerifyOTP={handleVerifyOTP}
+            handleSendMagicLink={handleSendMagicLink}
+            onBack={() => setIsVerifyingOTP(false)}
+          />
         ) : (
-          <motion.form 
-            className="mt-8 space-y-6" 
-            onSubmit={handleSubmit}
-            variants={containerVariants}
-          >
-            <motion.div className="space-y-4" variants={containerVariants}>
-              <motion.div variants={itemVariants}>
-                <Label htmlFor="email">Email</Label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    className="pl-10"
-                    placeholder="example@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-              </motion.div>
-              
-              <motion.div variants={itemVariants}>
-                <Label htmlFor="password">Password</Label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    className="pl-10"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-              </motion.div>
-
-              <motion.div variants={itemVariants} className="mt-4">
-                <div className="captcha-container flex justify-center">
-                  <HCaptcha
-                    sitekey="10000000-ffff-ffff-ffff-000000000001" // Test sitekey, replace with real one in production
-                    onVerify={handleCaptchaVerify}
-                    ref={captchaRef}
-                    theme="light"
-                  />
-                </div>
-              </motion.div>
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <Button
-                type="submit"
-                className="w-full flex justify-center py-6"
-                disabled={isLoading || !captchaToken}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader className="animate-spin mr-2" />
-                    Signing in...
-                  </>
-                ) : (
-                  "Sign in"
-                )}
-              </Button>
-            </motion.div>
-
-            <motion.div 
-              className="flex justify-center pt-2"
-              variants={itemVariants}
-            >
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleSendMagicLink}
-                disabled={isSendingMagicLink || !captchaToken}
-                className="text-sm"
-              >
-                {isSendingMagicLink ? (
-                  <>
-                    <Loader className="animate-spin mr-2 h-4 w-4" />
-                    Sending magic link...
-                  </>
-                ) : (
-                  <>
-                    <Mail className="mr-2 h-4 w-4" />
-                    Sign in with magic link
-                  </>
-                )}
-              </Button>
-            </motion.div>
-          </motion.form>
+          <LoginForm 
+            email={email}
+            setEmail={setEmail}
+            password={password}
+            setPassword={setPassword}
+            isLoading={isLoading}
+            isSendingMagicLink={isSendingMagicLink}
+            handleSubmit={handleSubmit}
+            handleSendMagicLink={handleSendMagicLink}
+            captchaRef={captchaRef}
+            captchaToken={captchaToken}
+            handleCaptchaVerify={handleCaptchaVerify}
+          />
         )}
         
         <motion.div 
