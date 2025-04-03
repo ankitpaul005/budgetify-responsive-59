@@ -5,7 +5,7 @@ import React, {
   useContext,
   ReactNode,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Session,
   User as SupabaseUser,
@@ -19,6 +19,7 @@ import { Check, AlertTriangle, Loader, LogIn, UserPlus, LogOut, RefreshCw } from
 export interface UserProfile extends Tables<"users"> {
   currency?: string;
   phone_number?: string;
+  totp_enabled?: boolean;
 }
 
 interface AuthContextType {
@@ -40,6 +41,9 @@ interface AuthContextType {
     currency?: string;
   }) => Promise<void>;
   signOut: () => Promise<void>;
+  enableTOTP: () => Promise<{ qrCode: string, secret: string }>;
+  verifyTOTP: (token: string) => Promise<boolean>;
+  verifyEmail: (token: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,6 +58,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const handleAuthFromUrl = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (data?.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+      }
+    };
+
+    if (location.hash && (location.hash.includes('access_token') || location.hash.includes('error'))) {
+      handleAuthFromUrl();
+    }
+  }, [location]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -99,10 +118,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(session.user);
           await fetchUserProfile(session.user.id);
           
-          // If on login page and already authenticated, redirect to dashboard
           const currentPath = window.location.pathname;
           if (currentPath === "/login" || currentPath === "/signup" || currentPath === "/") {
             navigate("/dashboard");
+          } else if (currentPath === "/dashboard" || 
+                     currentPath === "/analytics" || 
+                     currentPath === "/investments" || 
+                     currentPath === "/activity" || 
+                     currentPath === "/settings") {
+            navigate("/login");
           }
         }
       } catch (error) {
@@ -117,7 +141,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -154,6 +178,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           data: {
             name,
           },
+          emailRedirectTo: window.location.origin + '/dashboard',
         },
       });
 
@@ -163,17 +188,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await createUserProfile(data.user.id, email, name);
       }
 
-      toast.success("Signup successful!", {
-        description: "Your account has been created",
+      toast.success("Verification email sent!", {
+        description: "Please check your email to complete signup",
         icon: <UserPlus className="h-5 w-5 text-green-500" />
       });
-      navigate("/login");
     } catch (error) {
       console.error("Signup error:", error);
       toast.error("Signup failed", {
         description: error.message || "Please try again",
         icon: <AlertTriangle className="h-5 w-5 text-red-500" />
       });
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -190,6 +215,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           id: userId,
           email,
           name,
+          totp_enabled: false,
         },
       ]);
 
@@ -250,6 +276,105 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const enableTOTP = async () => {
+    try {
+      if (!user) {
+        toast.error("You must be logged in to enable 2FA", {
+          icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+        });
+        throw new Error("Not authenticated");
+      }
+
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: 'totp',
+      });
+
+      if (error) throw error;
+
+      return {
+        qrCode: data.totp.qr_code,
+        secret: data.totp.secret
+      };
+    } catch (error) {
+      console.error("Error enabling TOTP:", error);
+      toast.error("Failed to enable TOTP", {
+        description: error.message || "Please try again later",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
+      throw error;
+    }
+  };
+
+  const verifyTOTP = async (token: string) => {
+    try {
+      if (!user) {
+        toast.error("You must be logged in to verify 2FA", {
+          icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+        });
+        throw new Error("Not authenticated");
+      }
+
+      const { data, error } = await supabase.auth.mfa.challenge({
+        factorType: 'totp',
+      });
+      
+      if (error) throw error;
+
+      const { data: verifyData, error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: data.id,
+        code: token,
+      });
+
+      if (verifyError) throw verifyError;
+      
+      await supabase.from("users").update({ 
+        totp_enabled: true 
+      }).eq("id", user.id);
+      
+      setUserProfile(prev => ({
+        ...prev!,
+        totp_enabled: true
+      }));
+
+      toast.success("Two-factor authentication enabled", {
+        description: "Your account is now more secure",
+        icon: <Check className="h-5 w-5 text-green-500" />
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error verifying TOTP:", error);
+      toast.error("Failed to verify code", {
+        description: error.message || "Please try again with the correct code",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
+      return false;
+    }
+  };
+
+  const verifyEmail = async (token: string) => {
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: user?.email || "",
+        token,
+        type: 'email'
+      });
+
+      if (error) throw error;
+
+      toast.success("Email verified successfully", {
+        icon: <Check className="h-5 w-5 text-green-500" />
+      });
+    } catch (error) {
+      console.error("Error verifying email:", error);
+      toast.error("Failed to verify email", {
+        description: error.message || "Please try again with the correct code",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
+      throw error;
+    }
+  };
+
   const updateUserProfile = async (displayName: string, phoneNumber: string) => {
     try {
       if (!user) {
@@ -297,7 +422,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      // Input validation to ensure we're getting a proper number
       if (isNaN(income) || income < 0 || income > 10000000) {
         toast.error("Invalid income amount", {
           description: "Please enter a valid number",
@@ -308,7 +432,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       console.log("Updating income to:", income);
 
-      // Store the exact input value without any currency conversion
       const { error } = await supabase
         .from("users")
         .update({ total_income: income })
@@ -316,7 +439,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) throw error;
 
-      // Update local state with exactly the same value
       setUserProfile((prevProfile) => ({
         ...prevProfile,
         total_income: income
@@ -486,6 +608,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetUserData,
     updateProfile,
     signOut,
+    enableTOTP,
+    verifyTOTP,
+    verifyEmail
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

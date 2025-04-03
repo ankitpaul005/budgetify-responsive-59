@@ -1,6 +1,6 @@
 
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -28,32 +28,46 @@ import SignupPrompt from "./components/auth/SignupPrompt";
 // Create a client
 const queryClient = new QueryClient();
 
+// Higher-order component to ensure smooth page loads
+const RouteChangeHandler = ({ children }) => {
+  const location = useLocation();
+  
+  // When route changes, scroll to top
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
         <ThemeProvider>
           <AuthProvider>
-            <Routes>
-              <Route path="/" element={<IndexPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/investments" element={<InvestmentPage />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/activity" element={<ActivityPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignUpPage />} />
-              {/* New routes for footer pages */}
-              <Route path="/privacy" element={<PrivacyPolicyPage />} />
-              <Route path="/terms" element={<TermsOfServicePage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-            <SignupPrompt />
-            <ChatbotDialog />
-            <VoiceCommandListener />
-            <Toaster position="top-right" richColors />
+            <RouteChangeHandler>
+              <Routes>
+                <Route path="/" element={<IndexPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/investments" element={<InvestmentPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/activity" element={<ActivityPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignUpPage />} />
+                {/* New routes for footer pages */}
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms" element={<TermsOfServicePage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+              <SignupPrompt />
+              <ChatbotDialog />
+              <VoiceCommandListener />
+              <Toaster position="top-right" richColors />
+            </RouteChangeHandler>
           </AuthProvider>
         </ThemeProvider>
       </Router>

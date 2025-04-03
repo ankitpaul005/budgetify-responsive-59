@@ -1,13 +1,14 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, AlertTriangle, RefreshCw, Loader, Mail } from "lucide-react";
+import { Check, AlertTriangle, RefreshCw, Loader, Mail, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 interface EmailVerificationFormProps {
   email: string;
@@ -25,6 +26,7 @@ const EmailVerificationForm: React.FC<EmailVerificationFormProps> = ({
   const [isResending, setIsResending] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const otpLength = 6;
 
   // Timer countdown for resend button
   useEffect(() => {
@@ -42,6 +44,12 @@ const EmailVerificationForm: React.FC<EmailVerificationFormProps> = ({
     sendMagicLink();
   }, []);
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const sendMagicLink = async () => {
     try {
       setIsResending(true);
@@ -57,13 +65,13 @@ const EmailVerificationForm: React.FC<EmailVerificationFormProps> = ({
       
       setMagicLinkSent(true);
       setTimeLeft(60);
-      toast.success("Magic link sent!", {
-        description: "Please check your email inbox",
+      toast.success("Verification email sent!", {
+        description: "Check your inbox for a magic link and OTP code",
         icon: <Mail className="h-5 w-5 text-green-500" />,
       });
     } catch (error) {
       console.error("Error sending magic link:", error);
-      toast.error("Failed to send magic link", {
+      toast.error("Failed to send verification email", {
         description: error.message || "Please try again later",
         icon: <AlertTriangle className="h-5 w-5 text-red-500" />
       });
@@ -163,15 +171,23 @@ const EmailVerificationForm: React.FC<EmailVerificationFormProps> = ({
             </div>
             
             <div className="mt-4">
-              <Label htmlFor="verification-code">Enter 6-digit code</Label>
-              <Input
-                id="verification-code"
-                placeholder="000000"
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                maxLength={6}
-                className="text-center text-xl tracking-widest mt-1"
-              />
+              <Label htmlFor="verification-code" className="mb-3 block">Enter 6-digit code</Label>
+              <div className="flex justify-center">
+                <InputOTP maxLength={otpLength} value={code} onChange={setCode}>
+                  <InputOTPGroup>
+                    {Array.from({ length: otpLength }).map((_, index) => (
+                      <InputOTPSlot key={index} index={index} />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+            </div>
+
+            <div className="flex justify-center items-center mt-2">
+              <Clock className="h-4 w-4 mr-1 text-gray-500" />
+              <span className="text-sm text-muted-foreground">
+                {timeLeft > 0 ? `Resend available in ${formatTime(timeLeft)}` : 'You can resend now'}
+              </span>
             </div>
           </motion.div>
         </CardContent>
@@ -188,7 +204,7 @@ const EmailVerificationForm: React.FC<EmailVerificationFormProps> = ({
             <Button
               onClick={verifyCode}
               className="flex-1"
-              disabled={isLoading || !code || code.length !== 6}
+              disabled={isLoading || !code || code.length !== otpLength}
             >
               {isLoading ? (
                 <>
@@ -221,7 +237,7 @@ const EmailVerificationForm: React.FC<EmailVerificationFormProps> = ({
               ) : (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Resend magic link
+                  Resend verification email
                 </>
               )}
             </Button>
