@@ -144,7 +144,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await createUserProfile(data.user.id, email, name);
       }
 
-      toast.success("Signup successful! Please check your email to verify.");
+      toast.success("Signup successful! You can now log in.");
       navigate("/login");
     } catch (error) {
       console.error("Signup error:", error);
