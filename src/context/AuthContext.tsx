@@ -15,6 +15,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tables } from "@/integrations/supabase/types";
+import { Check, AlertTriangle, Loader, LogIn, UserPlus, LogOut, RefreshCw } from "lucide-react";
 
 export interface UserProfile extends Tables<"users"> {
   currency?: string;
@@ -67,8 +68,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setTimeout(() => {
             fetchUserProfile(session.user.id);
           }, 0);
+          
+          if (event === 'SIGNED_IN') {
+            toast.success("Signed in successfully", {
+              description: "Welcome back to Budgetify!",
+              icon: <LogIn className="h-5 w-5 text-green-500" />
+            });
+          }
         } else {
           setUserProfile(null);
+          
+          if (event === 'SIGNED_OUT') {
+            toast.success("Signed out successfully", {
+              description: "You have been logged out",
+              icon: <LogOut className="h-5 w-5 text-green-500" />
+            });
+          }
         }
       }
     );
@@ -122,6 +137,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
     } catch (error) {
       console.error("Error fetching user profile:", error);
+      toast.error("Failed to load user profile", {
+        description: error.message || "Please try again later",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
     }
   };
 
@@ -144,11 +163,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await createUserProfile(data.user.id, email, name);
       }
 
-      toast.success("Signup successful! You can now log in.");
+      toast.success("Signup successful!", {
+        description: "Your account has been created",
+        icon: <UserPlus className="h-5 w-5 text-green-500" />
+      });
       navigate("/login");
     } catch (error) {
       console.error("Signup error:", error);
-      toast.error(error.message || "Signup failed. Please try again.");
+      toast.error("Signup failed", {
+        description: error.message || "Please try again",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
     } finally {
       setIsLoading(false);
     }
@@ -171,7 +196,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) throw error;
     } catch (error) {
       console.error("Error creating user profile:", error);
-      toast.error("Failed to create user profile.");
+      toast.error("Failed to create user profile", {
+        description: error.message || "Please try again later",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
     }
   };
 
@@ -184,12 +212,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       if (error) throw error;
-
-      toast.success("Login successful!");
+      
+      // Toast notification is handled in the auth state change listener
       navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
-      toast.error(error.message || "Login failed. Please try again.");
+      toast.error("Login failed", {
+        description: error.message || "Please check your credentials",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
     } finally {
       setIsLoading(false);
     }
@@ -205,11 +236,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       setSession(null);
       setUserProfile(null);
-      toast.success("Logout successful!");
+      
+      // Toast notification is handled in the auth state change listener
       navigate("/login");
     } catch (error) {
       console.error("Logout error:", error);
-      toast.error("Logout failed. Please try again.");
+      toast.error("Logout failed", {
+        description: error.message || "Please try again",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
     } finally {
       setIsLoading(false);
     }
@@ -218,7 +253,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const updateUserProfile = async (displayName: string, phoneNumber: string) => {
     try {
       if (!user) {
-        toast.error("You must be logged in to update your profile");
+        toast.error("You must be logged in to update your profile", {
+          icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+        });
         return;
       }
   
@@ -239,23 +276,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         name: displayName
       }));
   
-      toast.success("Profile updated successfully");
+      toast.success("Profile updated successfully", {
+        icon: <Check className="h-5 w-5 text-green-500" />
+      });
     } catch (error) {
       console.error("Error updating profile:", error);
-      toast.error("Failed to update profile");
+      toast.error("Failed to update profile", {
+        description: error.message || "Please try again later",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
     }
   };
 
   const updateUserIncome = async (income: number) => {
     try {
       if (!user) {
-        toast.error("You must be logged in to update your income");
+        toast.error("You must be logged in to update your income", {
+          icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+        });
         return;
       }
 
       // Input validation to ensure we're getting a proper number
       if (isNaN(income) || income < 0 || income > 10000000) {
-        toast.error("Invalid income amount. Please enter a valid number.");
+        toast.error("Invalid income amount", {
+          description: "Please enter a valid number",
+          icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+        });
         return;
       }
 
@@ -275,10 +322,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         total_income: income
       }));
 
-      toast.success("Income updated successfully");
+      toast.success("Income updated successfully", {
+        description: `Your income has been set to ${new Intl.NumberFormat('en-IN', { 
+          style: 'currency', 
+          currency: 'INR' 
+        }).format(income)}`,
+        icon: <Check className="h-5 w-5 text-green-500" />
+      });
     } catch (error) {
       console.error("Error updating income:", error);
-      toast.error("Failed to update income");
+      toast.error("Failed to update income", {
+        description: error.message || "Please try again later",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
       throw error;
     }
   };
@@ -286,7 +342,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const updateUserPhoneNumber = async (phoneNumber: string) => {
     try {
       if (!user) {
-        toast.error("You must be logged in to update your phone number");
+        toast.error("You must be logged in to update your phone number", {
+          icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+        });
         return;
       }
 
@@ -295,10 +353,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         phone_number: phoneNumber
       }));
 
-      toast.success("Phone number updated successfully");
+      toast.success("Phone number updated successfully", {
+        description: "Your phone number has been saved",
+        icon: <Check className="h-5 w-5 text-green-500" />
+      });
     } catch (error) {
       console.error("Error updating phone number:", error);
-      toast.error("Failed to update phone number");
+      toast.error("Failed to update phone number", {
+        description: error.message || "Please try again later",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
       throw error;
     }
   };
@@ -306,9 +370,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const resetUserData = async () => {
     try {
       if (!user) {
-        toast.error("You must be logged in to reset your data");
+        toast.error("You must be logged in to reset your data", {
+          icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+        });
         return;
       }
+
+      toast.loading("Resetting your data...", {
+        id: "reset-data",
+        icon: <RefreshCw className="h-5 w-5 animate-spin" />
+      });
 
       const { error: transactionError } = await supabase
         .from("transactions")
@@ -330,10 +401,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem(`budgetify-categories-${user.id}`);
       localStorage.removeItem(`budgetify-budget-${user.id}`);
 
-      toast.success("Data reset successfully");
+      toast.dismiss("reset-data");
+      toast.success("Data reset successfully", {
+        description: "All your transactions and investments have been deleted",
+        icon: <Check className="h-5 w-5 text-green-500" />
+      });
     } catch (error) {
       console.error("Error resetting data:", error);
-      toast.error("Failed to reset data");
+      toast.dismiss("reset-data");
+      toast.error("Failed to reset data", {
+        description: error.message || "Please try again later",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
       throw error;
     }
   };
@@ -345,7 +424,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }) => {
     try {
       if (!user) {
-        toast.error("You must be logged in to update your profile");
+        toast.error("You must be logged in to update your profile", {
+          icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+        });
         return;
       }
 
@@ -375,10 +456,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         ...(data.currency !== undefined && { currency: data.currency })
       }));
 
-      toast.success("Profile updated successfully");
+      toast.success("Profile updated successfully", {
+        icon: <Check className="h-5 w-5 text-green-500" />
+      });
     } catch (error) {
       console.error("Error updating profile:", error);
-      toast.error("Failed to update profile");
+      toast.error("Failed to update profile", {
+        description: error.message || "Please try again later",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
       throw error;
     }
   };

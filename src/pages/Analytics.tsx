@@ -1,731 +1,484 @@
-
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import Layout from "@/components/Layout";
-import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ComposedChart, LineChart, PieChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Line, Cell, Pie, Legend, Bar, Area } from "recharts";
-import { format, subMonths, parseISO, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
-import useLocalStorage from "@/hooks/useLocalStorage";
-import { Transaction, Category } from "@/utils/mockData";
-import { Wallet, TrendingUp, TrendingDown, BarChart4, PieChart as PieChartIcon, LucideCalendar, ArrowLeft, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { categorizeTransactions, groupTransactionsByDate } from "@/utils/categoryUtils";
+import { motion } from "framer-motion";
+import { calculateSummary, groupTransactionsByCategory } from "@/utils/dashboardUtils";
 import { formatCurrency } from "@/utils/formatting";
+import { TrendingUp, TrendingDown, CreditCard, Calendar, PieChart, BarChart3, Filter, ArrowUp, ArrowDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-
-// Date range options
-const dateRanges = [
-  { label: "3 Months", value: 3 },
-  { label: "6 Months", value: 6 },
-  { label: "1 Year", value: 12 },
-];
+import { Transaction, Category } from "@/utils/mockData";
+import { useQuery } from "@tanstack/react-query";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  Legend,
+} from "recharts";
+import useLocalStorage from "@/hooks/useLocalStorage";
+import InvestmentPortfolio from "@/components/analytics/InvestmentPortfolio";
 
 const AnalyticsPage = () => {
   const { isAuthenticated, user, userProfile } = useAuth();
   const navigate = useNavigate();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categorizedData, setCategorizedData] = useState<any[]>([]);
+  const [timeFilter, setTimeFilter] = useState<string>("month");
+  const [sortBy, setSortBy] = useState<string>("amount");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [COLORS] = useState<string[]>([
+    "#3b82f6",
+    "#10b981",
+    "#f59e0b",
+    "#ef4444",
+    "#8b5cf6",
+    "#06b6d4",
+    "#84cc16",
+    "#f43f5e",
+    "#6366f1",
+    "#ec4899",
+    "#14b8a6",
+    "#a855f7",
+  ]);
+
+  const { data: transactions = [], isLoading } = useQuery({
+    queryKey: ["transactions", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false });
+      
+      if (error) {
+        console.error("Error fetching transactions:", error);
+        return [];
+      }
+      
+      return data as Transaction[];
+    },
+    enabled: !!user,
+  });
+
   const [categories] = useLocalStorage<Category[]>(
     `budgetify-categories-${user?.id || "demo"}`,
     []
   );
   
-  const [dateRange, setDateRange] = useState(6); // Default to 6 months
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Redirect if not authenticated
+  const [investments] = useLocalStorage<any[]>(
+    `budgetify-investments-${user?.id || "demo"}`,
+    []
+  );
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
     }
   }, [isAuthenticated, navigate]);
-  
-  // Colors for charts
-  const COLORS = [
-    "#0EA5E9",
-    "#10B981",
-    "#F59E0B",
-    "#EF4444",
-    "#8B5CF6",
-    "#EC4899",
-    "#6B7280",
-    "#14B8A6",
-  ];
-  
+
   useEffect(() => {
-    if (user) {
-      fetchTransactions();
+    if (transactions.length > 0) {
+      const categorized = categorizeTransactions(transactions, categories);
+      setCategorizedData(categorized);
     }
-  }, [user]);
-  
-  const fetchTransactions = async () => {
-    if (!user) return;
+  }, [transactions, categories]);
+
+  const summary = useMemo(() => {
+    return calculateSummary(transactions, userProfile?.total_income || 0);
+  }, [transactions, userProfile?.total_income]);
+
+  const filteredTransactions = useMemo(() => {
+    const currentDate = new Date();
+    let fromDate = new Date();
     
-    try {
-      setIsLoading(true);
-      console.log("Fetching transactions for analytics:", user.id);
-      
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false });
-      
-      if (error) {
-        throw error;
-      }
-      
-      console.log("Transactions fetched for analytics:", data);
-      
-      const formattedTransactions: Transaction[] = data.map((item: any) => ({
-        id: item.id,
-        amount: Number(item.amount),
-        description: item.description,
-        category: item.category,
-        type: item.type as 'income' | 'expense',
-        date: item.date,
-      }));
-      
-      setTransactions(formattedTransactions);
-    } catch (error: any) {
-      console.error("Error fetching transactions for analytics:", error);
-    } finally {
-      setIsLoading(false);
+    switch (timeFilter) {
+      case "week":
+        fromDate.setDate(currentDate.getDate() - 7);
+        break;
+      case "month":
+        fromDate.setMonth(currentDate.getMonth() - 1);
+        break;
+      case "quarter":
+        fromDate.setMonth(currentDate.getMonth() - 3);
+        break;
+      case "year":
+        fromDate.setFullYear(currentDate.getFullYear() - 1);
+        break;
+      case "all":
+      default:
+        fromDate = new Date(0); // Oldest possible date
+        break;
     }
-  };
-  
-  // Get transactions for the selected period
-  const getFilteredTransactions = () => {
-    const today = new Date();
-    const startDate = subMonths(today, dateRange);
     
     return transactions.filter(
-      (t) => new Date(t.date) >= startDate && new Date(t.date) <= today
+      (t) => new Date(t.date) >= fromDate && new Date(t.date) <= currentDate
     );
-  };
+  }, [transactions, timeFilter]);
   
-  const filteredTransactions = getFilteredTransactions();
-  
-  // Calculate monthly income, expenses, and savings
-  const getMonthlyData = () => {
-    const today = new Date();
-    const startDate = subMonths(today, dateRange);
+  const expensesByCategory = useMemo(() => {
+    const grouped = groupTransactionsByCategory(filteredTransactions.filter(t => t.type === "expense"));
     
-    const monthRange = eachMonthOfInterval({
-      start: startDate,
-      end: today,
-    });
-    
-    return monthRange.map((month) => {
-      const monthStart = startOfMonth(month);
-      const monthEnd = endOfMonth(month);
-      
-      const monthTransactions = transactions.filter(
-        (t) => {
-          const date = new Date(t.date);
-          return date >= monthStart && date <= monthEnd;
-        }
-      );
-      
-      const income = monthTransactions
-        .filter((t) => t.type === "income")
-        .reduce((sum, t) => sum + t.amount, 0);
-        
-      const expenses = monthTransactions
-        .filter((t) => t.type === "expense")
-        .reduce((sum, t) => sum + t.amount, 0);
-        
-      const savings = income - expenses;
-      
-      return {
-        month: format(month, "MMM yyyy"),
-        income,
-        expenses,
-        savings,
-      };
-    });
-  };
-  
-  const monthlyData = getMonthlyData();
-  
-  // Calculate category spending
-  const getCategorySpending = () => {
-    const categoryMap = new Map();
-    
-    // Create a map of category ids to names
-    categories.forEach(category => {
-      categoryMap.set(category.id, category.name);
-    });
-    
-    // Group transactions by category
-    const categorySpendingMap = new Map();
-    filteredTransactions
-      .filter(t => t.type === "expense")
-      .forEach(transaction => {
-        const categoryId = transaction.category;
-        const amount = transaction.amount;
-        
-        if (categorySpendingMap.has(categoryId)) {
-          categorySpendingMap.set(categoryId, categorySpendingMap.get(categoryId) + amount);
+    return Object.entries(grouped)
+      .map(([name, value]) => ({
+        name: name || "Uncategorized",
+        value
+      }))
+      .filter(item => item.value > 0)
+      .sort((a, b) => {
+        if (sortBy === "amount") {
+          return sortOrder === "desc" ? b.value - a.value : a.value - b.value;
         } else {
-          categorySpendingMap.set(categoryId, amount);
+          return sortOrder === "desc" 
+            ? b.name.localeCompare(a.name) 
+            : a.name.localeCompare(b.name);
         }
       });
-    
-    // Convert to array format for charts
-    const result = Array.from(categorySpendingMap.entries())
-      .map(([categoryId, value]) => ({
-        name: categoryMap.get(categoryId) || 'Unknown',
-        value,
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      }))
-      .filter(item => item.value > 0);
-    
-    return result;
-  };
+  }, [filteredTransactions, sortBy, sortOrder]);
   
-  const categorySpending = getCategorySpending();
+  const transactionsByDate = useMemo(() => {
+    return groupTransactionsByDate(filteredTransactions);
+  }, [filteredTransactions]);
   
-  // Calculate income vs expenses
-  const calculateIncomeVsExpenses = () => {
-    const income = filteredTransactions
-      .filter((t) => t.type === "income")
-      .reduce((sum, t) => sum + t.amount, 0);
-      
-    const expenses = filteredTransactions
-      .filter((t) => t.type === "expense")
-      .reduce((sum, t) => sum + t.amount, 0);
-      
-    const savings = income - expenses;
-    const savingsRate = income > 0 ? (savings / income) * 100 : 0;
-    
-    return {
-      income,
-      expenses,
-      savings,
-      savingsRate,
-    };
-  };
+  const dateLabels = Object.keys(transactionsByDate);
+  const incomeData = dateLabels.map(date => ({
+    date,
+    value: transactionsByDate[date].income
+  }));
   
-  const incomeVsExpenses = calculateIncomeVsExpenses();
-  
-  // Calculate top spending categories
-  const getTopSpendingCategories = () => {
-    return [...categorySpending]
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
-  };
-  
-  const topCategories = getTopSpendingCategories();
-  
-  // Get spending by weekday
-  const getSpendingByWeekday = () => {
-    const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    
-    const weekdaySpending = weekdays.map((day, index) => {
-      const total = filteredTransactions
-        .filter((t) => {
-          const date = new Date(t.date);
-          return date.getDay() === index && t.type === "expense";
-        })
-        .reduce((sum, t) => sum + t.amount, 0);
-        
-      return {
-        day,
-        amount: total,
-      };
-    });
-    
-    return weekdaySpending;
-  };
-  
-  const weekdaySpending = getSpendingByWeekday();
+  const expenseData = dateLabels.map(date => ({
+    date,
+    value: transactionsByDate[date].expense
+  }));
 
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="max-w-7xl mx-auto p-4 flex justify-center items-center h-[60vh]">
-          <div className="animate-pulse text-center">
-            <h2 className="text-2xl font-semibold mb-2">Loading analytics...</h2>
-            <p className="text-muted-foreground">Please wait while we process your financial data</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: {
+        when: "beforeChildren",
+        staggerChildren: 0.1
+      }
+    }
+  };
+  
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.5 } }
+  };
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-          <h1 className="text-3xl font-bold mb-4 md:mb-0">Financial Analytics</h1>
+      <motion.div
+        className="container mx-auto px-4 py-6"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        <motion.div 
+          className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6"
+          variants={itemVariants}
+        >
+          <motion.h1 
+            className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-budget-blue to-budget-green mb-4 md:mb-0"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+          >
+            Financial Analytics
+          </motion.h1>
           
-          <div className="flex space-x-2">
-            {dateRanges.map((range) => (
-              <Button
-                key={range.value}
-                variant={dateRange === range.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => setDateRange(range.value)}
-              >
-                {range.label}
-              </Button>
-            ))}
+          <div className="flex items-center space-x-2">
+            <Select 
+              defaultValue={timeFilter} 
+              onValueChange={(value) => setTimeFilter(value)}
+            >
+              <SelectTrigger className="w-36">
+                <Calendar className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Time Period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="week">Last Week</SelectItem>
+                <SelectItem value="month">Last Month</SelectItem>
+                <SelectItem value="quarter">Last Quarter</SelectItem>
+                <SelectItem value="year">Last Year</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
+        </motion.div>
         
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <GlassmorphicCard className="relative overflow-hidden">
-            <div className="absolute top-2 right-2 bg-budget-blue-light text-budget-blue rounded-full p-2">
-              <Wallet className="w-5 h-5" />
-            </div>
-            <h3 className="text-lg font-medium text-muted-foreground mb-2">
-              Total Income
-            </h3>
-            <p className="text-3xl font-bold mb-1">
-              {formatCurrency(incomeVsExpenses.income)}
-            </p>
-            <div className="flex items-center text-sm text-muted-foreground">
-              <span>Last {dateRange} months</span>
-            </div>
-          </GlassmorphicCard>
-          
-          <GlassmorphicCard className="relative overflow-hidden">
-            <div className="absolute top-2 right-2 bg-budget-red-light text-budget-red rounded-full p-2">
-              <BarChart4 className="w-5 h-5" />
-            </div>
-            <h3 className="text-lg font-medium text-muted-foreground mb-2">
-              Total Expenses
-            </h3>
-            <p className="text-3xl font-bold mb-1">
-              {formatCurrency(incomeVsExpenses.expenses)}
-            </p>
-            <div className="flex items-center text-sm text-muted-foreground">
-              <span>Last {dateRange} months</span>
-            </div>
-          </GlassmorphicCard>
-          
-          <GlassmorphicCard className="relative overflow-hidden">
-            <div className="absolute top-2 right-2 bg-budget-green-light text-budget-green rounded-full p-2">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-            <h3 className="text-lg font-medium text-muted-foreground mb-2">
-              Total Savings
-            </h3>
-            <p className={`text-3xl font-bold mb-1 ${
-              incomeVsExpenses.savings >= 0 ? "text-budget-green" : "text-budget-red"
-            }`}>
-              {formatCurrency(incomeVsExpenses.savings)}
-            </p>
-            <div className="flex items-center text-sm text-muted-foreground">
-              <span>{incomeVsExpenses.savingsRate.toFixed(1)}% savings rate</span>
-            </div>
-          </GlassmorphicCard>
-        </div>
+        <InvestmentPortfolio 
+          investments={investments}
+          COLORS={COLORS}
+        />
         
-        {/* Main Analytics Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Charts */}
-          <div className="lg:col-span-2 space-y-8">
-            <GlassmorphicCard>
-              <CardHeader className="pb-2">
-                <CardTitle>Income vs. Expenses Over Time</CardTitle>
-                <CardDescription>
-                  Monthly comparison for the last {dateRange} months
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[350px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart
-                      data={monthlyData}
-                      margin={{
-                        top: 20,
-                        right: 20,
-                        bottom: 20,
-                        left: 20,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                      <XAxis 
-                        dataKey="month"
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis 
-                        tick={{ fontSize: 12 }}
-                        tickFormatter={(value) => formatCurrency(value).replace(',000', 'k')}
-                      />
-                      <Tooltip
-                        formatter={(value: number) => [formatCurrency(value), "Amount"]}
-                      />
-                      <Legend />
-                      <Bar 
-                        dataKey="expenses" 
-                        fill="#EF4444" 
-                        name="Expenses"
-                        opacity={0.8}
-                        barSize={20}
-                      />
-                      <Bar 
-                        dataKey="income" 
-                        fill="#10B981" 
-                        name="Income"
-                        opacity={0.8}
-                        barSize={20}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="savings"
-                        stroke="#8B5CF6"
-                        name="Savings"
-                        strokeWidth={2}
-                        dot={{ r: 4 }}
-                      />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </GlassmorphicCard>
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+          variants={itemVariants}
+        >
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-md flex items-center">
+                <TrendingUp className="mr-2 h-4 w-4 text-budget-green" />
+                Income
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(summary.income)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Total income this month
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-md flex items-center">
+                <TrendingDown className="mr-2 h-4 w-4 text-budget-red" />
+                Expenses
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(summary.expenses)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Total expenses this month
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-md flex items-center">
+                <CreditCard className="mr-2 h-4 w-4 text-primary" />
+                Savings Rate
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary.savingsRate.toFixed(0)}%</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Of income saved this month
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+        
+        <motion.div variants={containerVariants}>
+          <Tabs defaultValue="expenses" className="w-full">
+            <TabsList className="grid grid-cols-2 mb-6">
+              <TabsTrigger value="expenses" className="flex items-center">
+                <PieChart className="h-4 w-4 mr-2" />
+                Spending by Category
+              </TabsTrigger>
+              <TabsTrigger value="trends" className="flex items-center">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Income & Expense Trends
+              </TabsTrigger>
+            </TabsList>
             
-            <Tabs defaultValue="categories" className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="categories">Categories</TabsTrigger>
-                <TabsTrigger value="weekday">By Weekday</TabsTrigger>
-                <TabsTrigger value="trends">Trends</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="categories" className="space-y-6">
-                <GlassmorphicCard>
-                  <CardHeader className="pb-2">
-                    <CardTitle>Spending by Category</CardTitle>
-                    <CardDescription>
-                      Where your money went in the last {dateRange} months
-                    </CardDescription>
+            <TabsContent value="expenses" className="space-y-4">
+              <motion.div variants={itemVariants}>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Spending by Category</CardTitle>
+                      <CardDescription>
+                        Breakdown of expenses by category
+                      </CardDescription>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Select 
+                        defaultValue={sortBy} 
+                        onValueChange={(value) => setSortBy(value)}
+                      >
+                        <SelectTrigger className="w-32">
+                          <Filter className="h-4 w-4 mr-2" />
+                          <SelectValue placeholder="Sort by" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="amount">Amount</SelectItem>
+                          <SelectItem value="name">Category</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                      >
+                        {sortOrder === "asc" ? (
+                          <ArrowUp className="h-4 w-4" />
+                        ) : (
+                          <ArrowDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-[350px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={categorySpending}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            outerRadius={120}
-                            fill="#8884d8"
-                            dataKey="value"
-                            label={({ name, percent }) => 
-                              percent > 0.01 ? `${name}: ${(percent * 100).toFixed(0)}%` : null
-                            }
-                          >
-                            {categorySpending.map((entry, index) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={COLORS[index % COLORS.length]}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="h-80">
+                        {expensesByCategory.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RechartsPieChart>
+                              <Pie
+                                data={expensesByCategory}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={true}
+                                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                outerRadius={80}
+                                fill="#8884d8"
+                                dataKey="value"
+                              >
+                                {expensesByCategory.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                formatter={(value) => [formatCurrency(Number(value)), "Spent"]}
                               />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            formatter={(value: number) => [formatCurrency(value), "Spent"]}
-                          />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </GlassmorphicCard>
-              </TabsContent>
-              
-              <TabsContent value="weekday" className="space-y-6">
-                <GlassmorphicCard>
-                  <CardHeader className="pb-2">
-                    <CardTitle>Spending by Day of Week</CardTitle>
-                    <CardDescription>
-                      When you spend the most money
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[350px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart
-                          data={weekdaySpending}
-                          margin={{
-                            top: 20,
-                            right: 20,
-                            bottom: 20,
-                            left: 20,
-                          }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                          <XAxis 
-                            dataKey="day"
-                            tick={{ fontSize: 12 }}
-                          />
-                          <YAxis 
-                            tick={{ fontSize: 12 }}
-                            tickFormatter={(value) => formatCurrency(value).replace(',000', 'k')}
-                          />
-                          <Tooltip
-                            formatter={(value: number) => [formatCurrency(value), "Spent"]}
-                          />
-                          <Bar 
-                            dataKey="amount" 
-                            fill="#8B5CF6" 
-                            opacity={0.8}
-                            barSize={40}
-                          >
-                            {weekdaySpending.map((entry, index) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={COLORS[index % COLORS.length]}
-                              />
-                            ))}
-                          </Bar>
-                          <Line
-                            type="monotone"
-                            dataKey="amount"
-                            stroke="#0EA5E9"
-                            strokeWidth={2}
-                            dot={false}
-                          />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </GlassmorphicCard>
-              </TabsContent>
-              
-              <TabsContent value="trends" className="space-y-6">
-                <GlassmorphicCard>
-                  <CardHeader className="pb-2">
-                    <CardTitle>Spending Trends</CardTitle>
-                    <CardDescription>
-                      How your expenses have changed over time
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[350px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart
-                          data={monthlyData}
-                          margin={{
-                            top: 20,
-                            right: 20,
-                            bottom: 20,
-                            left: 20,
-                          }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                          <XAxis 
-                            dataKey="month"
-                            tick={{ fontSize: 12 }}
-                          />
-                          <YAxis 
-                            tick={{ fontSize: 12 }}
-                            tickFormatter={(value) => formatCurrency(value).replace(',000', 'k')}
-                          />
-                          <Tooltip
-                            formatter={(value: number) => [formatCurrency(value), "Amount"]}
-                          />
-                          <Legend />
-                          <Line
-                            type="monotone"
-                            dataKey="expenses"
-                            stroke="#EF4444"
-                            name="Expenses"
-                            strokeWidth={2}
-                            dot={{ r: 3 }}
-                            activeDot={{ r: 6 }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="income"
-                            stroke="#10B981"
-                            name="Income"
-                            strokeWidth={2}
-                            dot={{ r: 3 }}
-                            activeDot={{ r: 6 }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </GlassmorphicCard>
-              </TabsContent>
-            </Tabs>
-          </div>
-          
-          {/* Right Column - Analytics Insights */}
-          <div className="space-y-8">
-            <GlassmorphicCard>
-              <CardHeader className="pb-2">
-                <CardTitle>Top Spending Categories</CardTitle>
-                <CardDescription>
-                  Where most of your money goes
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {topCategories.length > 0 ? (
-                    topCategories.map((category, index) => (
-                      <div key={category.name} className="flex items-center">
-                        <div
-                          className="w-2 h-full min-h-[40px] mr-3"
-                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                        />
-                        <div className="flex-1">
-                          <div className="flex justify-between items-center mb-1">
-                            <h4 className="font-medium">{category.name}</h4>
-                            <span className="font-medium">
-                              {formatCurrency(category.value)}
-                            </span>
+                            </RechartsPieChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="h-full flex items-center justify-center">
+                            <p className="text-muted-foreground">No expense data available</p>
                           </div>
-                          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                            <div
-                              className="h-2 rounded-full"
-                              style={{ 
-                                width: `${(category.value / topCategories[0].value) * 100}%`,
-                                backgroundColor: COLORS[index % COLORS.length] 
-                              }}
+                        )}
+                      </div>
+                      
+                      <div className="overflow-auto max-h-80">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2">Category</th>
+                              <th className="text-right py-2">Amount</th>
+                              <th className="text-right py-2">Percentage</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {expensesByCategory.length > 0 ? (
+                              expensesByCategory.map((category, index) => {
+                                const totalExpenses = expensesByCategory.reduce(
+                                  (sum, cat) => sum + cat.value, 0
+                                );
+                                const percentage = (category.value / totalExpenses) * 100;
+                                
+                                return (
+                                  <tr key={index} className="border-b">
+                                    <td className="py-2 flex items-center">
+                                      <span
+                                        className="h-3 w-3 rounded-full mr-2"
+                                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                                      ></span>
+                                      {category.name}
+                                    </td>
+                                    <td className="text-right py-2">{formatCurrency(category.value)}</td>
+                                    <td className="text-right py-2">{percentage.toFixed(1)}%</td>
+                                  </tr>
+                                );
+                              })
+                            ) : (
+                              <tr>
+                                <td colSpan={3} className="text-center py-4 text-muted-foreground">
+                                  No expense data available
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </TabsContent>
+            
+            <TabsContent value="trends" className="space-y-4">
+              <motion.div variants={itemVariants}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Income & Expense Trends</CardTitle>
+                    <CardDescription>
+                      Track your financial patterns over time
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      {incomeData.length > 0 || expenseData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart
+                            margin={{
+                              top: 5,
+                              right: 30,
+                              left: 20,
+                              bottom: 5,
+                            }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis 
+                              dataKey="date" 
+                              allowDuplicatedCategory={false}
+                              angle={-45}
+                              textAnchor="end"
+                              height={70}
+                              tick={{ fontSize: 12 }}
                             />
-                          </div>
+                            <YAxis 
+                              tickFormatter={(value) => formatCurrency(value)} 
+                            />
+                            <Tooltip 
+                              formatter={(value) => [formatCurrency(Number(value)), "Amount"]}
+                            />
+                            <Legend />
+                            
+                            <Line
+                              data={incomeData}
+                              type="monotone"
+                              dataKey="value"
+                              name="Income"
+                              stroke="#10b981"
+                              activeDot={{ r: 8 }}
+                              strokeWidth={2}
+                            />
+                            
+                            <Line
+                              data={expenseData}
+                              type="monotone"
+                              dataKey="value"
+                              name="Expenses"
+                              stroke="#ef4444"
+                              activeDot={{ r: 8 }}
+                              strokeWidth={2}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-full flex items-center justify-center">
+                          <p className="text-muted-foreground">No transaction data available</p>
                         </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-6 text-muted-foreground">
-                      No spending data available
+                      )}
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </GlassmorphicCard>
-            
-            <GlassmorphicCard>
-              <CardHeader className="pb-2">
-                <CardTitle>Monthly Savings Rate</CardTitle>
-                <CardDescription>
-                  Your savings as a percentage of income
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center mb-4">
-                  <div className="inline-block relative">
-                    <PieChartIcon className="w-20 h-20 text-muted-foreground" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-2xl font-bold">
-                        {incomeVsExpenses.savingsRate.toFixed(0)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-muted/30 rounded-lg">
-                      <div className="text-muted-foreground text-sm mb-1">Income</div>
-                      <div className="font-bold text-budget-green">
-                        {formatCurrency(incomeVsExpenses.income)}
-                      </div>
-                    </div>
-                    <div className="text-center p-4 bg-muted/30 rounded-lg">
-                      <div className="text-muted-foreground text-sm mb-1">Expenses</div>
-                      <div className="font-bold text-budget-red">
-                        {formatCurrency(incomeVsExpenses.expenses)}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="text-center p-4 bg-muted/30 rounded-lg">
-                    <div className="text-muted-foreground text-sm mb-1">Saved</div>
-                    <div className={`font-bold ${
-                      incomeVsExpenses.savings >= 0 ? "text-budget-green" : "text-budget-red"
-                    }`}>
-                      {formatCurrency(incomeVsExpenses.savings)}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </GlassmorphicCard>
-            
-            <GlassmorphicCard>
-              <CardHeader className="pb-2">
-                <CardTitle>Financial Insights</CardTitle>
-                <CardDescription>
-                  Smart observations about your finances
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {incomeVsExpenses.savingsRate > 20 && (
-                    <div className="flex p-3 bg-budget-green-light/30 rounded-lg">
-                      <TrendingUp className="w-5 h-5 text-budget-green mr-3 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-budget-green">Great saving rate!</h4>
-                        <p className="text-sm text-muted-foreground">
-                          You're saving over 20% of your income. Keep it up!
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {incomeVsExpenses.savingsRate < 10 && incomeVsExpenses.savingsRate >= 0 && (
-                    <div className="flex p-3 bg-budget-yellow-light/30 rounded-lg">
-                      <TrendingDown className="w-5 h-5 text-budget-yellow mr-3 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-budget-yellow">Low saving rate</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Consider reducing expenses to save more of your income.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {incomeVsExpenses.savingsRate < 0 && (
-                    <div className="flex p-3 bg-budget-red-light/30 rounded-lg">
-                      <TrendingDown className="w-5 h-5 text-budget-red mr-3 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-budget-red">Spending more than income</h4>
-                        <p className="text-sm text-muted-foreground">
-                          You're spending more than you earn. Review your expenses.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {topCategories.length > 0 && (
-                    <div className="flex p-3 bg-budget-blue-light/30 rounded-lg">
-                      <BarChart4 className="w-5 h-5 text-budget-blue mr-3 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-budget-blue">Top spending category</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Your highest expense is in {topCategories[0].name} at {formatCurrency(topCategories[0].value)}.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {monthlyData.length >= 2 && (
-                    <div className="flex p-3 bg-budget-purple-light/30 rounded-lg">
-                      <LucideCalendar className="w-5 h-5 text-budget-purple mr-3 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-budget-purple">Monthly trend</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {monthlyData[monthlyData.length - 1].expenses > monthlyData[monthlyData.length - 2].expenses
-                            ? "Your expenses increased compared to last month."
-                            : "Your expenses decreased compared to last month."}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </GlassmorphicCard>
-          </div>
-        </div>
-      </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </TabsContent>
+          </Tabs>
+        </motion.div>
+      </motion.div>
     </Layout>
   );
 };
