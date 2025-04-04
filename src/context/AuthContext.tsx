@@ -40,6 +40,9 @@ interface AuthContextProps {
   updateUserName: (name: string) => Promise<void>;
   updateUserPhoneNumber: (phoneNumber: string) => Promise<void>;
   resetUserData: () => Promise<void>;
+  // Adding missing methods that are used in Settings.tsx
+  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -218,6 +221,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
     }
   };
+  
+  // Alias for logout to maintain compatibility with Settings.tsx
+  const signOut = logout;
+
+  // Update user profile general method
+  const updateProfile = async (userData: Partial<UserProfile>) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update(userData)
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Update local user profile
+      if (userProfile) {
+        setUserProfile({
+          ...userProfile,
+          ...userData
+        });
+      }
+
+      toast.success("Profile updated successfully");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error("Failed to update profile");
+      throw error;
+    }
+  };
 
   // Update user name
   const updateUserName = async (name: string) => {
@@ -238,8 +272,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           name
         });
       }
-
-      return true;
     } catch (error) {
       console.error("Error updating user name:", error);
       throw error;
@@ -265,8 +297,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           total_income: income
         });
       }
-
-      return true;
     } catch (error) {
       console.error("Error updating user income:", error);
       throw error;
@@ -293,8 +323,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           phone_number: phoneNumber
         });
       }
-
-      return true;
     } catch (error) {
       console.error("Error updating user phone number:", error);
       throw error;
@@ -321,8 +349,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq('user_id', user.id);
 
       if (activityError) throw activityError;
-
-      return true;
     } catch (error) {
       console.error("Error resetting user data:", error);
       throw error;
@@ -342,7 +368,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         updateUserIncome,
         updateUserName,
         updateUserPhoneNumber,
-        resetUserData
+        resetUserData,
+        // Add the missing methods
+        updateProfile,
+        signOut
       }}
     >
       {children}

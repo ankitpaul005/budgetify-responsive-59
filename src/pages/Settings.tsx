@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -26,7 +27,7 @@ import { ActivityTypes, logActivity } from "@/services/activityService";
 import { currencyRates, currencySymbols } from "@/utils/formatting";
 
 const SettingsPage = () => {
-  const { isAuthenticated, user, userProfile, updateProfile, signOut } = useAuth();
+  const { isAuthenticated, user, userProfile, logout, updateProfile } = useAuth();
   const navigate = useNavigate();
   
   const [name, setName] = useState(userProfile?.name || "");
@@ -152,7 +153,7 @@ const SettingsPage = () => {
         "User logged out"
       );
       
-      await signOut();
+      await logout();
       navigate("/login");
     } catch (error) {
       console.error("Error signing out:", error);
