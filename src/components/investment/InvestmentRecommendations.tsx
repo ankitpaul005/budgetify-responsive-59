@@ -10,14 +10,16 @@ import AvailableFundsCard from "./AvailableFundsCard";
 import RecommendationsGrid from "./RecommendationsGrid";
 import EmptyRecommendations from "./EmptyRecommendations";
 
-interface InvestmentRecommendationsProps {
+export interface InvestmentRecommendationsProps {
   availableFunds: number;
   hasIncomeInfo: boolean;
+  currency?: string; // Added currency prop
 }
 
 const InvestmentRecommendations: React.FC<InvestmentRecommendationsProps> = ({
   availableFunds,
   hasIncomeInfo,
+  currency = "INR", // Default to INR
 }) => {
   const recommendations = generateInvestmentRecommendations(availableFunds);
 
@@ -47,8 +49,8 @@ const InvestmentRecommendations: React.FC<InvestmentRecommendationsProps> = ({
         <CardContent>
           {hasIncomeInfo && availableFunds > 0 ? (
             <div className="space-y-6">
-              <AvailableFundsCard availableFunds={availableFunds} />
-              <RecommendationsGrid recommendations={recommendations} />
+              <AvailableFundsCard availableFunds={availableFunds} currency={currency} />
+              <RecommendationsGrid recommendations={recommendations} currency={currency} />
             </div>
           ) : (
             <EmptyRecommendations hasIncomeInfo={hasIncomeInfo} />

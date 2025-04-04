@@ -1,18 +1,18 @@
 
 import React from "react";
-import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
-import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AreaChart, PieChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Area, Cell, Pie, Legend } from "recharts";
-import { Info } from "lucide-react";
+import { PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, AreaChart, Area } from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatting";
 import { Investment } from "@/utils/mockData";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { motion } from "framer-motion";
 
-interface PortfolioChartsProps {
+export interface PortfolioChartsProps {
   investments: Investment[];
   portfolioComposition: { name: string; value: number }[];
-  growthData: { date: string; value: number }[];
+  growthData: any[];
   COLORS: string[];
+  currency?: string;
 }
 
 const PortfolioCharts: React.FC<PortfolioChartsProps> = ({
@@ -20,191 +20,170 @@ const PortfolioCharts: React.FC<PortfolioChartsProps> = ({
   portfolioComposition,
   growthData,
   COLORS,
+  currency = "INR",
 }) => {
+  const isMobile = useIsMobile();
+  
+  // Helper function to safely convert to number
+  const toNumber = (value: any): number => {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  };
+
+  // 3D effect card variants
+  const cardVariants = {
+    initial: { y: 20, opacity: 0 },
+    animate: { y: 0, opacity: 1, transition: { duration: 0.5 } },
+    hover: { 
+      y: -5, 
+      boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+      transition: { duration: 0.3 }
+    }
+  };
+
   return (
-    <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="mb-4">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="allocation">Allocation</TabsTrigger>
-        <TabsTrigger value="projection">Projection</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="overview" className="space-y-6">
-        <GlassmorphicCard>
-          <CardHeader className="pb-2">
-            <CardTitle>Portfolio Composition</CardTitle>
-            <CardDescription>
-              Your investment allocation
-            </CardDescription>
+    <>
+      <motion.div
+        variants={cardVariants}
+        initial="initial"
+        animate="animate"
+        whileHover="hover"
+      >
+        <Card className="relative overflow-hidden">
+          {/* 3D effect background elements */}
+          <div className="absolute -z-10 w-40 h-40 rounded-full bg-blue-500/5 blur-3xl top-20 right-10"></div>
+          <div className="absolute -z-10 w-60 h-60 rounded-full bg-green-500/5 blur-3xl bottom-0 left-20"></div>
+          
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-teal-500">
+                Portfolio Growth Projection
+              </span>
+            </CardTitle>
+            <CardDescription>Estimated value over the next 2 years</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
-              {investments.length > 0 ? (
+            <div className="h-72">
+              {growthData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={growthData}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <defs>
+                      <linearGradient id="portfolioColorGrowth" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0EA5E9" stopOpacity={0.5} />
+                        <stop offset="95%" stopColor="#0EA5E9" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 12 }}
+                      tickMargin={10}
+                      interval={isMobile ? 5 : 2}
+                    />
+                    <YAxis 
+                      tickFormatter={(value) => formatCurrency(toNumber(value), currency)}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <Tooltip 
+                      formatter={(value) => [formatCurrency(toNumber(value), currency), "Projected Value"]}
+                      labelFormatter={(label) => `Date: ${label}`}
+                      contentStyle={{ borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="#0EA5E9" 
+                      strokeWidth={3}
+                      fill="url(#portfolioColorGrowth)" 
+                      dot={false}
+                      activeDot={{ r: 8, strokeWidth: 2, stroke: '#fff' }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted-foreground">No growth data available</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+      
+      <motion.div
+        variants={cardVariants}
+        initial="initial"
+        animate="animate"
+        whileHover="hover"
+        transition={{ delay: 0.1 }}
+      >
+        <Card className="relative overflow-hidden">
+          {/* 3D effect background elements */}
+          <div className="absolute -z-10 w-40 h-40 rounded-full bg-purple-500/5 blur-3xl top-10 left-20"></div>
+          <div className="absolute -z-10 w-60 h-60 rounded-full bg-amber-500/5 blur-3xl bottom-10 right-10"></div>
+          
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-pink-500">
+                Portfolio Composition
+              </span>
+            </CardTitle>
+            <CardDescription>Breakdown of your investments</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72">
+              {portfolioComposition.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={portfolioComposition}
                       cx="50%"
                       cy="50%"
-                      labelLine={false}
-                      outerRadius={100}
+                      labelLine={!isMobile}
+                      label={!isMobile ? ({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%` : null}
+                      outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
-                      label={({ name, percent }) => 
-                        `${name}: ${(percent * 100).toFixed(0)}%`
-                      }
+                      paddingAngle={2}
                     >
                       {portfolioComposition.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={COLORS[index % COLORS.length]} 
+                          stroke="rgba(255,255,255,0.3)"
+                          strokeWidth={1}
                         />
                       ))}
                     </Pie>
-                    <Tooltip
-                      formatter={(value: number) => [
-                        formatCurrency(value),
-                        "Amount",
-                      ]}
+                    <Tooltip 
+                      formatter={(value) => [formatCurrency(toNumber(value), currency), "Amount"]}
+                      contentStyle={{ borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                     />
-                    <Legend />
+                    <Legend
+                      layout={isMobile ? "horizontal" : "vertical"}
+                      verticalAlign={isMobile ? "bottom" : "middle"}
+                      align={isMobile ? "center" : "right"}
+                      wrapperStyle={{ fontSize: "12px" }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-center">
-                  <div>
-                    <Info className="h-10 w-10 text-budget-blue mx-auto mb-2" />
-                    <h3 className="text-lg font-medium mb-1">No Investments Yet</h3>
-                    <p className="text-muted-foreground">
-                      Add investments to see your portfolio composition
-                    </p>
-                  </div>
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted-foreground">No investment data available</p>
                 </div>
               )}
             </div>
           </CardContent>
-        </GlassmorphicCard>
-      </TabsContent>
-      
-      <TabsContent value="allocation" className="space-y-6">
-        <GlassmorphicCard>
-          <CardHeader className="pb-2">
-            <CardTitle>Asset Allocation</CardTitle>
-            <CardDescription>
-              Distribution of your investments by type
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              {investments.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={
-                        investments.reduce<{ name: string; value: number }[]>((acc, inv) => {
-                          const existing = acc.findIndex(i => i.name === inv.type);
-                          if (existing >= 0) {
-                            acc[existing].value += inv.value;
-                          } else {
-                            acc.push({ name: inv.type, value: inv.value });
-                          }
-                          return acc;
-                        }, [])
-                      }
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => 
-                        `${name}: ${(percent * 100).toFixed(0)}%`
-                      }
-                    >
-                      {portfolioComposition.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: number) => [
-                        formatCurrency(value),
-                        "Amount",
-                      ]}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-center">
-                  <div>
-                    <Info className="h-10 w-10 text-budget-blue mx-auto mb-2" />
-                    <h3 className="text-lg font-medium mb-1">No Investments Yet</h3>
-                    <p className="text-muted-foreground">
-                      Add investments to see your asset allocation
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </GlassmorphicCard>
-      </TabsContent>
-      
-      <TabsContent value="projection" className="space-y-6">
-        <GlassmorphicCard>
-          <CardHeader className="pb-2">
-            <CardTitle>Portfolio Projection</CardTitle>
-            <CardDescription>
-              Estimated portfolio growth over the next 2 years
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={growthData}
-                  margin={{
-                    top: 10,
-                    right: 30,
-                    left: 0,
-                    bottom: 0,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                  <XAxis 
-                    dataKey="date" 
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) => formatCurrency(value).replace(',000', 'k')}
-                  />
-                  <Tooltip 
-                    formatter={(value: number) => [formatCurrency(value), "Projected Value"]}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="#8B5CF6"
-                    fill="url(#colorValue)"
-                    strokeWidth={2}
-                  />
-                  <defs>
-                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </GlassmorphicCard>
-      </TabsContent>
-    </Tabs>
+        </Card>
+      </motion.div>
+    </>
   );
 };
 

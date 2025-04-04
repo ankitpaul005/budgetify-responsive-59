@@ -1,5 +1,6 @@
 
 import { Transaction } from "@/utils/mockData";
+import { format, isWithinInterval, startOfMonth, endOfMonth, subMonths } from "date-fns";
 
 export const calculateSummary = (transactions: Transaction[], userIncome: number = 0) => {
   console.log("Calculating summary with income:", userIncome, "and transactions:", transactions);
@@ -23,7 +24,7 @@ export const calculateSummary = (transactions: Transaction[], userIncome: number
   
   console.log("Current month transactions:", currentMonthTransactions.length);
   
-  // Calculate total expenses
+  // Calculate total expenses (including investment expenses)
   const expenses = currentMonthTransactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
@@ -37,7 +38,8 @@ export const calculateSummary = (transactions: Transaction[], userIncome: number
     
   console.log("Additional income:", additionalIncome, "User income:", userIncome);
     
-  const totalIncome = (userIncome || 0) + additionalIncome;
+  // Use the exact income value without any currency conversion
+  const totalIncome = userIncome + additionalIncome;
   const balance = totalIncome - expenses;
   const savingsRate = totalIncome > 0 ? ((totalIncome - expenses) / totalIncome) * 100 : 0;
   
@@ -49,4 +51,143 @@ export const calculateSummary = (transactions: Transaction[], userIncome: number
     balance,
     savingsRate,
   };
+};
+
+// Function to handle stock investments
+export const processStockInvestment = async (userId: string, symbol: string, quantity: number, price: number) => {
+  try {
+    // Create a new expense transaction for the stock purchase
+    const investmentAmount = quantity * price;
+    const investmentTransaction = {
+      user_id: userId,
+      description: `Investment in ${symbol} stock (${quantity} shares)`,
+      amount: investmentAmount,
+      category: "Investments",
+      type: "expense",
+      date: new Date().toISOString()
+    };
+    
+    // We'll return the transaction data for the caller to add to Supabase
+    return {
+      transaction: investmentTransaction,
+      amount: investmentAmount
+    };
+  } catch (error) {
+    console.error("Error processing stock investment:", error);
+    throw error;
+  }
+};
+
+// Function to handle SIP investments
+export const processSIPInvestment = async (userId: string, fundName: string, amount: number) => {
+  try {
+    // Create a new expense transaction for the SIP investment
+    const investmentTransaction = {
+      user_id: userId,
+      description: `SIP Investment in ${fundName}`,
+      amount: amount,
+      category: "SIP Investments",
+      type: "expense",
+      date: new Date().toISOString()
+    };
+    
+    // Return the transaction data for the caller to add to Supabase
+    return {
+      transaction: investmentTransaction,
+      amount: amount
+    };
+  } catch (error) {
+    console.error("Error processing SIP investment:", error);
+    throw error;
+  }
+};
+
+// Group transactions by category for pie charts
+export const groupTransactionsByCategory = (transactions: Transaction[]) => {
+  // Get all expense transactions
+  const expenseTransactions = transactions.filter(t => t.type === 'expense');
+  
+  // Group by category and sum amounts
+  const groupedExpenses = expenseTransactions.reduce((acc, transaction) => {
+    const category = transaction.category || "Uncategorized";
+    if (!acc[category]) {
+      acc[category] = 0;
+    }
+    acc[category] += transaction.amount;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  return groupedExpenses;
+};
+
+// Group transactions by month for bar charts
+export const groupTransactionsByMonth = (transactions: Transaction[]) => {
+  const monthlyData: Record<string, { income: number; expenses: number }> = {};
+  
+  // Sort transactions by date
+  const sortedTransactions = [...transactions].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+  
+  // Group by month
+  sortedTransactions.forEach(transaction => {
+    const date = new Date(transaction.date);
+    const monthKey = format(date, 'MMM yyyy');
+    
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = { income: 0, expenses: 0 };
+    }
+    
+    if (transaction.type === 'income') {
+      monthlyData[monthKey].income += transaction.amount;
+    } else {
+      monthlyData[monthKey].expenses += transaction.amount;
+    }
+  });
+  
+  return monthlyData;
+};
+
+// Process available SIPs from transactions
+export const getAvailableSIPs = (transactions: Transaction[]) => {
+  const sipTransactions = transactions.filter(t => 
+    t.type === 'expense' && 
+    (t.category === 'SIP Investments' || t.description.includes('SIP'))
+  );
+  
+  const sipMapping: Record<string, { total: number, count: number, lastDate: string }> = {};
+  
+  // Group SIPs by fund name
+  sipTransactions.forEach(transaction => {
+    // Extract fund name from description
+    const match = transaction.description.match(/SIP Investment in (.+)/) || 
+                 transaction.description.match(/Investment in (.+) SIP/);
+    
+    const fundName = match ? match[1] : 'Unknown Fund';
+    
+    if (!sipMapping[fundName]) {
+      sipMapping[fundName] = {
+        total: 0,
+        count: 0,
+        lastDate: transaction.date
+      };
+    }
+    
+    sipMapping[fundName].total += transaction.amount;
+    sipMapping[fundName].count += 1;
+    
+    // Update last date if this transaction is more recent
+    if (new Date(transaction.date) > new Date(sipMapping[fundName].lastDate)) {
+      sipMapping[fundName].lastDate = transaction.date;
+    }
+  });
+  
+  // Convert to array format
+  return Object.entries(sipMapping).map(([fundName, data]) => ({
+    fundName,
+    totalInvested: data.total,
+    numberOfInvestments: data.count,
+    averageInvestment: data.total / data.count,
+    lastInvestmentDate: data.lastDate
+  }));
 };

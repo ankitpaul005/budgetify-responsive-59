@@ -15,9 +15,94 @@ type Message = {
 
 const INITIAL_BOT_MESSAGE: Message = {
   id: "welcome",
-  content: "Hello! I'm your Budgetify assistant. How can I help you with your finances today?",
+  content: "Hello! I'm your Budgetify Personal Assistant. How can I help you with your finances today?",
   sender: "bot",
   timestamp: new Date(),
+};
+
+// Sample financial advice responses based on different topics
+const FINANCIAL_RESPONSES = {
+  budget: [
+    "Based on your spending patterns, I recommend allocating 50% of your income to necessities, 30% to wants, and 20% to savings or debt repayment.",
+    "Have you considered using the envelope budgeting method? It's highly effective for visual budgeters who want to physically separate their funds.",
+    "Your current budget allocation seems weighted toward discretionary spending. Would you like me to suggest ways to rebalance your budget?",
+  ],
+  investing: [
+    "For your age profile and risk tolerance, a diversified portfolio with 70% stocks and 30% bonds could be appropriate. Would you like more specific investment recommendations?",
+    "Dollar-cost averaging is a strategy worth considering - investing fixed amounts regularly regardless of market conditions can reduce the impact of volatility.",
+    "Have you explored index funds? They offer low fees and broad market exposure, which is ideal for long-term investors.",
+  ],
+  saving: [
+    "An emergency fund covering 3-6 months of expenses should be your priority before focusing on other financial goals.",
+    "Consider automating your savings with direct deposits to prevent the temptation of spending that money.",
+    "For your short-term savings goals, a high-yield savings account currently offers better returns than traditional savings accounts.",
+  ],
+  debt: [
+    "The avalanche method (paying highest interest debt first) will save you the most money in the long run, while the snowball method (paying smallest debts first) can provide psychological wins.",
+    "Have you checked if you qualify for any loan forgiveness programs or refinancing options? These could significantly reduce your debt burden.",
+    "Based on your current income and debt level, I estimate you could be debt-free in approximately 3 years with a focused repayment strategy.",
+  ],
+  retirement: [
+    "Aiming to save at least 15% of your pre-tax income for retirement is a good rule of thumb for most people.",
+    "Don't forget to take full advantage of any employer matching in your retirement accounts - it's essentially free money.",
+    "Consider a Roth IRA in addition to your employer-sponsored plan for tax diversification in retirement.",
+  ],
+  taxes: [
+    "Keeping track of all potential tax deductions throughout the year can significantly reduce your tax liability.",
+    "Have you considered tax-loss harvesting in your investment portfolio? It can help offset capital gains taxes.",
+    "For self-employed individuals, setting up a SEP IRA or Solo 401(k) can provide significant tax advantages.",
+  ],
+};
+
+// AI helper function to analyze user query and generate contextual response
+const generateAIResponse = (query: string): string => {
+  query = query.toLowerCase();
+  
+  // Check if query contains specific financial topics
+  const topics = {
+    budget: ["budget", "spending", "expense", "money", "allocate", "plan"],
+    investing: ["invest", "stock", "bond", "portfolio", "market", "fund"],
+    saving: ["save", "savings", "emergency fund", "goal", "future"],
+    debt: ["debt", "loan", "credit", "mortgage", "interest", "payment"],
+    retirement: ["retire", "retirement", "pension", "401k", "ira"],
+    taxes: ["tax", "taxes", "deduction", "refund", "filing", "irs"],
+  };
+
+  // Determine the topic with the most matches
+  let matchedTopic = null;
+  let maxMatches = 0;
+  
+  for (const [topic, keywords] of Object.entries(topics)) {
+    const matches = keywords.filter(keyword => query.includes(keyword)).length;
+    if (matches > maxMatches) {
+      maxMatches = matches;
+      matchedTopic = topic;
+    }
+  }
+  
+  // Generate response based on matched topic or provide general response
+  if (matchedTopic && maxMatches > 0) {
+    const responses = FINANCIAL_RESPONSES[matchedTopic as keyof typeof FINANCIAL_RESPONSES];
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+  
+  // General greetings
+  if (query.includes("hello") || query.includes("hi") || query.includes("hey")) {
+    return "Hello! I'm your Budgetify Personal Assistant. How can I help you with your finances today?";
+  }
+  
+  // Gratitude responses
+  if (query.includes("thank")) {
+    return "You're welcome! I'm always here to help with your financial questions. Is there anything else you'd like to know?";
+  }
+  
+  // Farewell responses
+  if (query.includes("bye") || query.includes("goodbye")) {
+    return "Goodbye! Feel free to come back whenever you have more financial questions. I'm here to help 24/7.";
+  }
+  
+  // Default response with personalized touch
+  return "I'm here to assist with your financial journey. You can ask me about budgeting, investments, saving strategies, debt management, or any other financial topics. How can I help you today?";
 };
 
 const ChatbotDialog = () => {
@@ -102,45 +187,19 @@ const ChatbotDialog = () => {
       textareaRef.current.style.height = "auto";
     }
     
-    // Simulate bot response
+    // Generate AI response with a realistic delay
     setTimeout(() => {
-      const botResponse = getBotResponse(input.trim());
+      const aiResponse = generateAIResponse(input.trim());
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: botResponse,
+        content: aiResponse,
         sender: "bot",
         timestamp: new Date(),
       };
       
       setMessages(prev => [...prev, botMessage]);
       setIsLoading(false);
-    }, 1000);
-  };
-
-  const getBotResponse = (message: string): string => {
-    message = message.toLowerCase();
-    
-    if (message.includes("hello") || message.includes("hi") || message.includes("hey")) {
-      return "Hello! How can I help you with your finances today?";
-    } else if (message.includes("invest") || message.includes("stocks") || message.includes("investment")) {
-      return "Based on your profile, I recommend diversifying your investments across different asset classes. Check out our investment suggestions on the investments page!";
-    } else if (message.includes("budget") || message.includes("spending")) {
-      return "To create a budget, start by tracking your income and expenses. Our dashboard provides tools to help you visualize your spending patterns and set budget limits.";
-    } else if (message.includes("save") || message.includes("saving")) {
-      return "A good rule of thumb is to save at least 20% of your income. Consider setting up automatic transfers to your savings account on payday.";
-    } else if (message.includes("debt") || message.includes("loan")) {
-      return "To manage debt effectively, prioritize paying off high-interest debt first while making minimum payments on other debts. Consider the debt avalanche or debt snowball methods.";
-    } else if (message.includes("tax") || message.includes("taxes")) {
-      return "Consider tax-advantaged investment accounts like 401(k)s or IRAs. Keep track of tax-deductible expenses throughout the year for easier filing.";
-    } else if (message.includes("retire") || message.includes("retirement")) {
-      return "Start planning for retirement early. Aim to save at least 15% of your income for retirement, and take advantage of any employer matching programs.";
-    } else if (message.includes("thank")) {
-      return "You're welcome! Is there anything else I can help you with?";
-    } else if (message.includes("bye") || message.includes("goodbye")) {
-      return "Goodbye! Feel free to come back if you have more questions.";
-    } else {
-      return "I'm here to help with your financial questions. You can ask me about budgeting, investments, saving strategies, debt management, or any other financial topics!";
-    }
+    }, Math.random() * 1000 + 500); // Random delay between 500-1500ms for realism
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -160,17 +219,17 @@ const ChatbotDialog = () => {
     <>
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 z-50"
+        className="fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 z-50 animate-bounce hover:animate-none"
         aria-label="Chat with assistant"
       >
         <MessageCircleQuestion className="h-6 w-6" />
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[80vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[500px] max-h-[80vh] flex flex-col p-0 gap-0 overflow-hidden animate-fadeIn">
           <DialogHeader className="border-b p-4 flex-shrink-0">
             <div className="flex items-center justify-between">
-              <DialogTitle>Budgetify Assistant</DialogTitle>
+              <DialogTitle>Budgetify Personal Assistant</DialogTitle>
               <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
                 <X className="h-4 w-4" />
               </Button>
@@ -183,12 +242,13 @@ const ChatbotDialog = () => {
                 key={message.id}
                 className={cn(
                   "flex",
-                  message.sender === "user" ? "justify-end" : "justify-start"
+                  message.sender === "user" ? "justify-end" : "justify-start",
+                  "animate-slideUp"
                 )}
               >
                 <div
                   className={cn(
-                    "max-w-[80%] rounded-lg px-4 py-2",
+                    "max-w-[80%] rounded-lg px-4 py-2 transition-all duration-200 hover:shadow-md",
                     message.sender === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
@@ -205,7 +265,7 @@ const ChatbotDialog = () => {
               </div>
             ))}
             {isLoading && (
-              <div className="flex justify-start">
+              <div className="flex justify-start animate-fadeIn">
                 <div className="bg-muted max-w-[80%] rounded-lg px-4 py-2">
                   <div className="flex space-x-2">
                     <div className="h-2 w-2 rounded-full bg-muted-foreground/50 animate-bounce"></div>
@@ -228,7 +288,7 @@ const ChatbotDialog = () => {
                   autoResizeTextarea(e);
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder="Type your message..."
+                placeholder="Type your financial question..."
                 className="resize-none min-h-[40px] max-h-[150px]"
                 rows={1}
               />

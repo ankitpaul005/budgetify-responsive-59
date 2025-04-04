@@ -12,7 +12,11 @@ import { ActivityTypes, logActivity } from "@/services/activityService";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { useAuth } from "@/context/AuthContext";
 
-const InvestmentForm = () => {
+interface InvestmentFormProps {
+  onClose?: () => void;
+}
+
+const InvestmentForm: React.FC<InvestmentFormProps> = ({ onClose }) => {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [value, setValue] = useState("");
@@ -66,6 +70,11 @@ const InvestmentForm = () => {
       setStartDate(new Date());
       
       toast.success("Investment added successfully");
+      
+      // Call onClose if provided
+      if (onClose) {
+        onClose();
+      }
     } catch (error) {
       console.error("Error adding investment:", error);
       toast.error("Failed to add investment");
