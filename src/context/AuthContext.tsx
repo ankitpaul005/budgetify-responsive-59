@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useState,
@@ -217,10 +216,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("Login failed", {
-        description: error.message || "Please check your credentials",
-        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
-      });
+      throw error; // Important to throw the error so it's caught in the Login component
     } finally {
       setIsLoading(false);
     }
