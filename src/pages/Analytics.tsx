@@ -12,8 +12,16 @@ import { Transaction, Category } from "@/utils/mockData";
 import { Wallet, TrendingUp, TrendingDown, BarChart4, PieChart as PieChartIcon, LucideCalendar, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatCurrency } from "@/utils/formatting";
-import { supabase } from "@/integrations/supabase/client";
+
+// Format currency in INR
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
 
 // Date range options
 const dateRanges = [
@@ -23,16 +31,18 @@ const dateRanges = [
 ];
 
 const AnalyticsPage = () => {
-  const { isAuthenticated, user, userProfile } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions] = useLocalStorage<Transaction[]>(
+    `budgetify-transactions-${user?.id || "demo"}`,
+    []
+  );
   const [categories] = useLocalStorage<Category[]>(
     `budgetify-categories-${user?.id || "demo"}`,
     []
   );
   
   const [dateRange, setDateRange] = useState(6); // Default to 6 months
-  const [isLoading, setIsLoading] = useState(true);
   
   // Redirect if not authenticated
   useEffect(() => {
@@ -52,48 +62,6 @@ const AnalyticsPage = () => {
     "#6B7280",
     "#14B8A6",
   ];
-  
-  useEffect(() => {
-    if (user) {
-      fetchTransactions();
-    }
-  }, [user]);
-  
-  const fetchTransactions = async () => {
-    if (!user) return;
-    
-    try {
-      setIsLoading(true);
-      console.log("Fetching transactions for analytics:", user.id);
-      
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false });
-      
-      if (error) {
-        throw error;
-      }
-      
-      console.log("Transactions fetched for analytics:", data);
-      
-      const formattedTransactions: Transaction[] = data.map((item: any) => ({
-        id: item.id,
-        amount: Number(item.amount),
-        description: item.description,
-        category: item.category,
-        type: item.type as 'income' | 'expense',
-        date: item.date,
-      }));
-      
-      setTransactions(formattedTransactions);
-    } catch (error: any) {
-      console.error("Error fetching transactions for analytics:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
   
   // Get transactions for the selected period
   const getFilteredTransactions = () => {
@@ -151,38 +119,19 @@ const AnalyticsPage = () => {
   
   // Calculate category spending
   const getCategorySpending = () => {
-    const categoryMap = new Map();
-    
-    // Create a map of category ids to names
-    categories.forEach(category => {
-      categoryMap.set(category.id, category.name);
-    });
-    
-    // Group transactions by category
-    const categorySpendingMap = new Map();
-    filteredTransactions
-      .filter(t => t.type === "expense")
-      .forEach(transaction => {
-        const categoryId = transaction.category;
-        const amount = transaction.amount;
+    const categorySpending = categories.map((category) => {
+      const total = filteredTransactions
+        .filter((t) => t.category === category.id && t.type === "expense")
+        .reduce((sum, t) => sum + t.amount, 0);
         
-        if (categorySpendingMap.has(categoryId)) {
-          categorySpendingMap.set(categoryId, categorySpendingMap.get(categoryId) + amount);
-        } else {
-          categorySpendingMap.set(categoryId, amount);
-        }
-      });
-    
-    // Convert to array format for charts
-    const result = Array.from(categorySpendingMap.entries())
-      .map(([categoryId, value]) => ({
-        name: categoryMap.get(categoryId) || 'Unknown',
-        value,
+      return {
+        name: category.name,
+        value: total,
         color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      }))
-      .filter(item => item.value > 0);
+      };
+    }).filter((item) => item.value > 0);
     
-    return result;
+    return categorySpending;
   };
   
   const categorySpending = getCategorySpending();
@@ -241,19 +190,6 @@ const AnalyticsPage = () => {
   };
   
   const weekdaySpending = getSpendingByWeekday();
-
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="max-w-7xl mx-auto p-4 flex justify-center items-center h-[60vh]">
-          <div className="animate-pulse text-center">
-            <h2 className="text-2xl font-semibold mb-2">Loading analytics...</h2>
-            <p className="text-muted-foreground">Please wait while we process your financial data</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
 
   return (
     <Layout>
@@ -417,7 +353,7 @@ const AnalyticsPage = () => {
                             fill="#8884d8"
                             dataKey="value"
                             label={({ name, percent }) => 
-                              percent > 0.01 ? `${name}: ${(percent * 100).toFixed(0)}%` : null
+                              `${name}: ${(percent * 100).toFixed(0)}%`
                             }
                           >
                             {categorySpending.map((entry, index) => (

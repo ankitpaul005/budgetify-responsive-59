@@ -2,6 +2,9 @@
 import React from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ProfileMenu from "./ProfileMenu";
+import ThemeToggle from "./ThemeToggle";
+import NotificationManager from "../notifications/NotificationManager";
 
 interface MobileMenuToggleProps {
   isOpen: boolean;
@@ -15,7 +18,14 @@ const MobileMenuToggle: React.FC<MobileMenuToggleProps> = ({
   toggleMenu,
 }) => {
   return (
-    <div className="lg:hidden">
+    <div className="flex items-center gap-2 lg:hidden">
+      {isAuthenticated && (
+        <>
+          <NotificationManager />
+          <ProfileMenu />
+          <ThemeToggle />
+        </>
+      )}
       <Button
         variant="ghost"
         size="icon"

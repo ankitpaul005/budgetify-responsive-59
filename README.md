@@ -1,115 +1,69 @@
-# Budgetify - Personal Finance Management App
+# Welcome to your Lovable project
 
-A modern, responsive personal finance management application built with React and TypeScript.
+## Project info
 
-## Features
+**URL**: https://lovable.dev/projects/7f10a7e9-d8c2-4d5b-a148-7f7e331a66f1
 
-- 📊 Interactive financial dashboards and charts
-- 💰 Expense tracking and budgeting
-- 📱 Fully responsive design for all devices
-- 🌙 Dark/Light mode support
-- 🔒 Secure authentication with Supabase
-- 📈 Real-time data updates
-- 🎨 Modern UI with shadcn/ui components
+## How can I edit this code?
 
-## Tech Stack
+There are several ways of editing your application.
 
-- **Frontend Framework**: React 18 with TypeScript
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui (based on Radix UI)
-- **State Management**: React Query
-- **Form Handling**: React Hook Form with Zod validation
-- **Backend**: Supabase
-- **Charts**: Recharts
-- **Routing**: React Router DOM
-- **Animations**: Framer Motion
-- **Date Handling**: date-fns
+**Use Lovable**
 
-## Project Structure
+Simply visit the [Lovable Project](https://lovable.dev/projects/7f10a7e9-d8c2-4d5b-a148-7f7e331a66f1) and start prompting.
 
-```
-src/
-├── components/     # Reusable UI components
-├── context/       # React context providers
-├── hooks/         # Custom React hooks
-├── integrations/  # Third-party integrations
-├── lib/          # Utility libraries
-├── pages/        # Page components
-├── services/     # API and service functions
-├── types/        # TypeScript type definitions
-└── utils/        # Helper functions
-```
+Changes made via Lovable will be committed automatically to this repo.
 
-## Getting Started
+**Use your preferred IDE**
 
-### Prerequisites
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-- Node.js (v18 or higher)
-- npm (v9 or higher)
+The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-### Installation
+Follow these steps:
 
-1. Clone the repository:
-```bash
+```sh
+# Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
-cd budgetify-responsive
-```
 
-2. Install dependencies:
-```bash
-npm install
-```
+# Step 2: Navigate to the project directory.
+cd <YOUR_PROJECT_NAME>
 
-3. Create a `.env` file in the root directory and add your Supabase credentials:
-```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+# Step 3: Install the necessary dependencies.
+npm i
 
-4. Start the development server:
-```bash
+# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173`
+**Edit a file directly in GitHub**
 
-### Available Scripts
+- Navigate to the desired file(s).
+- Click the "Edit" button (pencil icon) at the top right of the file view.
+- Make your changes and commit the changes.
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run build:dev` - Build for development
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
+**Use GitHub Codespaces**
 
-## Deployment
+- Navigate to the main page of your repository.
+- Click on the "Code" button (green button) near the top right.
+- Select the "Codespaces" tab.
+- Click on "New codespace" to launch a new Codespace environment.
+- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-The project can be deployed using various platforms:
+## What technologies are used for this project?
 
-1. **Vercel** (Recommended)
-   - Connect your GitHub repository
-   - Configure environment variables
-   - Deploy with one click
+This project is built with .
 
-2. **Netlify**
-   - Connect your GitHub repository
-   - Set build command: `npm run build`
-   - Set publish directory: `dist`
-   - Configure environment variables
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
 
-3. **GitHub Pages**
-   - Add `base` configuration in `vite.config.ts`
-   - Set build command: `npm run build`
-   - Deploy using GitHub Actions
+## How can I deploy this project?
 
-## Contributing
+Simply open [Lovable](https://lovable.dev/projects/7f10a7e9-d8c2-4d5b-a148-7f7e331a66f1) and click on Share -> Publish.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## I want to use a custom domain - is that possible?
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)

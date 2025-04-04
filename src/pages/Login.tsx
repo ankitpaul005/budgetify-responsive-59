@@ -1,127 +1,123 @@
 
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
-import { User, Lock, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Layout from "@/components/Layout";
+import { useAuth } from "@/context/AuthContext";
+import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
 import { toast } from "sonner";
 
-const LoginPage = () => {
+const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
+      console.log("Login: User is authenticated, redirecting to dashboard");
       navigate("/dashboard");
     }
   }, [isAuthenticated, navigate]);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
-      toast.error("Please enter both email and password");
+      toast.error("Please fill in all fields");
       return;
     }
     
+    setIsSubmitting(true);
+    
     try {
-      setIsLoading(true);
-      await login(email, password);
-      // Navigate is handled inside login function on success
+      console.log("Attempting login with:", email);
+      const success = await login(email, password);
+      console.log("Login success:", success);
+      
+      if (!success) {
+        setIsSubmitting(false);
+      }
     } catch (error) {
       console.error("Login error:", error);
-      // Toast is handled in the login function
-    } finally {
-      setIsLoading(false);
+      toast.error("An error occurred during login");
+      setIsSubmitting(false);
     }
   };
-  
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Welcome Back</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">Sign in to your account</p>
-        </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
-                </div>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="pl-10"
-                  placeholder="example@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  className="pl-10"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-          
-          <div>
-            <Button
-              type="submit"
-              className="w-full flex justify-center py-6"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader className="animate-spin mr-2" />
-                  Signing in...
-                </>
-              ) : (
-                "Sign in"
-              )}
-            </Button>
-          </div>
-        </form>
-        
-        <div className="mt-6 text-center">
-          <p className="text-sm">
-            Don't have an account?{" "}
-            <Link to="/signup" className="font-medium text-primary hover:text-primary/80">
-              Sign up
-            </Link>
+    <Layout>
+      <div className="w-full max-w-md mx-auto px-4 sm:px-0 mt-6 mb-12">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Welcome back</h1>
+          <p className="text-muted-foreground">
+            Sign in to continue to Budgetify
           </p>
         </div>
+        
+        <GlassmorphicCard>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="input-focus-ring"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  to="#"
+                  className="text-sm text-primary hover:underline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toast.info("Password reset is not implemented in this demo");
+                  }}
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="input-focus-ring"
+              />
+            </div>
+            
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Signing in..." : "Sign in"}
+            </Button>
+            
+            <div className="text-center text-sm">
+              <span className="text-muted-foreground">Don't have an account? </span>
+              <Link to="/signup" className="text-primary hover:underline">
+                Sign up
+              </Link>
+            </div>
+          </form>
+        </GlassmorphicCard>
       </div>
-    </div>
+    </Layout>
   );
 };
 
-export default LoginPage;
+export default Login;

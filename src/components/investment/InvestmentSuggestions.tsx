@@ -5,16 +5,14 @@ import { CardHeader, CardTitle, CardDescription, CardContent } from "@/component
 import { AlertTriangle, Info } from "lucide-react";
 import { InvestmentSuggestion } from "@/utils/mockData";
 
-export interface InvestmentSuggestionsProps {
+interface InvestmentSuggestionsProps {
   investmentSuggestions: InvestmentSuggestion[];
   hasIncomeInfo: boolean;
-  currency?: string; // Added currency prop
 }
 
 const InvestmentSuggestions: React.FC<InvestmentSuggestionsProps> = ({
   investmentSuggestions,
   hasIncomeInfo,
-  currency = "INR", // Default to INR
 }) => {
   return (
     <div className="mb-8">

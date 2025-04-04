@@ -10,9 +10,6 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/utils/formatting";
 import { supabase } from "@/integrations/supabase/client";
 import { ActivityTypes, logActivity } from "@/services/activityService";
-import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
-import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { PlusCircle, CreditCard, Calendar, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 
 const TransactionForm = ({ userId, onAddTransaction }) => {
   const [description, setDescription] = useState("");
@@ -20,7 +17,6 @@ const TransactionForm = ({ userId, onAddTransaction }) => {
   const [category, setCategory] = useState("");
   const [type, setType] = useState("expense");
   const [date, setDate] = useState(new Date());
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,18 +25,17 @@ const TransactionForm = ({ userId, onAddTransaction }) => {
       return;
     }
 
-    try {
-      setIsSubmitting(true);
-      const newTransaction = {
-        // Remove the uuidv4() call as Supabase will generate the ID
-        user_id: userId,
-        description,
-        amount: Number(amount),
-        category,
-        type,
-        date: date.toISOString()
-      };
+    const newTransaction = {
+      // Remove the uuidv4() call as Supabase will generate the ID
+      user_id: userId,
+      description,
+      amount: Number(amount),
+      category,
+      type,
+      date: date.toISOString()
+    };
 
+    try {
       const { data, error } = await supabase.from("transactions").insert([newTransaction]).select();
       
       if (error) throw error;
@@ -67,126 +62,80 @@ const TransactionForm = ({ userId, onAddTransaction }) => {
     } catch (error) {
       console.error("Error adding transaction:", error);
       toast.error("Failed to add transaction");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   return (
-    <GlassmorphicCard className="bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-slate-900 shadow-lg border-t border-l border-white/20 dark:border-white/5">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <PlusCircle className="h-5 w-5 text-budget-green" />
-          Add Transaction
-        </CardTitle>
-        <CardDescription>
-          Record your income and expenses
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="grid gap-4">
-          <div>
-            <Label htmlFor="description" className="text-sm font-medium mb-1 block">Description</Label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <Input
-                type="text"
-                id="description"
-                placeholder="What was it for?"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="pl-10"
-                required
-              />
-            </div>
-          </div>
-          
-          <div>
-            <Label htmlFor="amount" className="text-sm font-medium mb-1 block">Amount</Label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="text-muted-foreground">₹</span>
-              </div>
-              <Input
-                type="number"
-                id="amount"
-                placeholder="How much?"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="pl-8"
-                required
-              />
-            </div>
-          </div>
+    <form onSubmit={handleSubmit} className="grid gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="description">Description</Label>
+          <Input
+            type="text"
+            id="description"
+            placeholder="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="amount">Amount</Label>
+          <Input
+            type="number"
+            id="amount"
+            placeholder="Amount"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            required
+          />
+        </div>
+      </div>
 
-          <div>
-            <Label htmlFor="category" className="text-sm font-medium mb-1 block">Category</Label>
-            <Select onValueChange={setCategory} value={category}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Food">Food</SelectItem>
-                <SelectItem value="Transportation">Transportation</SelectItem>
-                <SelectItem value="Housing">Housing</SelectItem>
-                <SelectItem value="Utilities">Utilities</SelectItem>
-                <SelectItem value="Entertainment">Entertainment</SelectItem>
-                <SelectItem value="Salary">Salary</SelectItem>
-                <SelectItem value="Investments">Investments</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      <div>
+        <Label htmlFor="category">Category</Label>
+        <Select onValueChange={setCategory}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Food">Food</SelectItem>
+            <SelectItem value="Transportation">Transportation</SelectItem>
+            <SelectItem value="Housing">Housing</SelectItem>
+            <SelectItem value="Utilities">Utilities</SelectItem>
+            <SelectItem value="Entertainment">Entertainment</SelectItem>
+            <SelectItem value="Salary">Salary</SelectItem>
+            <SelectItem value="Investments">Investments</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-          <div>
-            <Label className="text-sm font-medium mb-1 block">Type</Label>
-            <RadioGroup 
-              defaultValue="expense" 
-              className="flex gap-4" 
-              value={type}
-              onValueChange={(value) => setType(value)}
-            >
-              <div className="flex items-center space-x-2 border border-border rounded-md px-4 py-2 hover:bg-muted/20 transition-colors">
-                <RadioGroupItem value="expense" id="expense" />
-                <Label htmlFor="expense" className="flex items-center gap-2 cursor-pointer">
-                  <ArrowDownCircle className="h-4 w-4 text-budget-red" />
-                  Expense
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2 border border-border rounded-md px-4 py-2 hover:bg-muted/20 transition-colors">
-                <RadioGroupItem value="income" id="income" />
-                <Label htmlFor="income" className="flex items-center gap-2 cursor-pointer">
-                  <ArrowUpCircle className="h-4 w-4 text-budget-green" />
-                  Income
-                </Label>
-              </div>
-            </RadioGroup>
+      <div>
+        <Label>Type</Label>
+        <RadioGroup defaultValue="expense" className="flex gap-2" onValueChange={(value) => setType(value)}>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="expense" id="r1" />
+            <Label htmlFor="r1">Expense</Label>
           </div>
-
-          <div>
-            <Label className="text-sm font-medium mb-1 block flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              Date
-            </Label>
-            <DatePicker
-              selected={date}
-              onSelect={setDate}
-              required
-            />
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="income" id="r2" />
+            <Label htmlFor="r2">Income</Label>
           </div>
+        </RadioGroup>
+      </div>
 
-          <Button 
-            type="submit" 
-            className="w-full mt-2 bg-gradient-to-r from-budget-blue to-budget-green text-white"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Adding..." : "Add Transaction"}
-          </Button>
-        </form>
-      </CardContent>
-    </GlassmorphicCard>
+      <div>
+        <Label>Date</Label>
+        <DatePicker
+          selected={date}
+          onSelect={setDate}
+          required
+        />
+      </div>
+
+      <Button type="submit">Add Transaction</Button>
+    </form>
   );
 };
 

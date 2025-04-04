@@ -23,7 +23,7 @@ export const calculateSummary = (transactions: Transaction[], userIncome: number
   
   console.log("Current month transactions:", currentMonthTransactions.length);
   
-  // Calculate total expenses (including investment expenses)
+  // Calculate total expenses
   const expenses = currentMonthTransactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
@@ -37,8 +37,7 @@ export const calculateSummary = (transactions: Transaction[], userIncome: number
     
   console.log("Additional income:", additionalIncome, "User income:", userIncome);
     
-  // Use the exact income value without any currency conversion
-  const totalIncome = userIncome + additionalIncome;
+  const totalIncome = (userIncome || 0) + additionalIncome;
   const balance = totalIncome - expenses;
   const savingsRate = totalIncome > 0 ? ((totalIncome - expenses) / totalIncome) * 100 : 0;
   
@@ -50,53 +49,4 @@ export const calculateSummary = (transactions: Transaction[], userIncome: number
     balance,
     savingsRate,
   };
-};
-
-// Function to handle stock investments
-export const processStockInvestment = async (userId: string, symbol: string, quantity: number, price: number) => {
-  try {
-    // Create a new expense transaction for the stock purchase
-    const investmentAmount = quantity * price;
-    const investmentTransaction = {
-      user_id: userId,
-      description: `Investment in ${symbol} stock (${quantity} shares)`,
-      amount: investmentAmount,
-      category: "Investments",
-      type: "expense",
-      date: new Date().toISOString()
-    };
-    
-    // We'll return the transaction data for the caller to add to Supabase
-    return {
-      transaction: investmentTransaction,
-      amount: investmentAmount
-    };
-  } catch (error) {
-    console.error("Error processing stock investment:", error);
-    throw error;
-  }
-};
-
-// New function to handle SIP investments
-export const processSIPInvestment = async (userId: string, fundName: string, amount: number) => {
-  try {
-    // Create a new expense transaction for the SIP investment
-    const investmentTransaction = {
-      user_id: userId,
-      description: `SIP Investment in ${fundName}`,
-      amount: amount,
-      category: "SIP Investments",
-      type: "expense",
-      date: new Date().toISOString()
-    };
-    
-    // Return the transaction data for the caller to add to Supabase
-    return {
-      transaction: investmentTransaction,
-      amount: amount
-    };
-  } catch (error) {
-    console.error("Error processing SIP investment:", error);
-    throw error;
-  }
 };

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import Layout from "@/components/Layout";
@@ -7,34 +7,26 @@ import useLocalStorage from "@/hooks/useLocalStorage";
 import { Investment, getInvestmentSuggestions } from "@/utils/mockData";
 import { generateGrowthData } from "@/utils/investmentUtils";
 import { ActivityTypes, logActivity } from "@/services/activityService";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { motion } from "framer-motion";
 
 // Import refactored components
 import InvestmentSummaryCards from "@/components/investment/InvestmentSummaryCards";
 import InvestmentSuggestions from "@/components/investment/InvestmentSuggestions";
 import InvestmentRecommendations from "@/components/investment/InvestmentRecommendations";
+import PortfolioCharts from "@/components/investment/PortfolioCharts";
 import InvestmentList from "@/components/investment/InvestmentList";
 
 // Import new components
 import LiveStockTracker from "@/components/investment/LiveStockTracker";
-import BitcoinTracker from "@/components/investment/BitcoinTracker";
-import SIPTracker from "@/components/investment/SIPTracker";
-import SimpleInvestmentForm from "@/components/investment/SimpleInvestmentForm";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Loader } from "lucide-react";
+import AIInvestmentAdvisor from "@/components/investment/AIInvestmentAdvisor";
+import PortfolioRebalancer from "@/components/investment/PortfolioRebalancer";
 
 const InvestmentPage = () => {
   const { isAuthenticated, user, userProfile } = useAuth();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
   const [investments] = useLocalStorage<Investment[]>(
     `budgetify-investments-${user?.id || "demo"}`,
     []
   );
-  
-  const [activeCurrency, setActiveCurrency] = useState("INR");
   
   // Redirect if not authenticated
   useEffect(() => {
@@ -51,8 +43,8 @@ const InvestmentPage = () => {
   }, [isAuthenticated, navigate, user]);
   
   // Get investment suggestions based on user income
-  const investmentSuggestions = userProfile?.total_income 
-    ? getInvestmentSuggestions(userProfile.total_income / 12) 
+  const investmentSuggestions = userProfile?.totalIncome 
+    ? getInvestmentSuggestions(userProfile.totalIncome / 12) 
     : [];
   
   // Calculate total portfolio value
@@ -63,164 +55,96 @@ const InvestmentPage = () => {
     ? ((totalValue - totalInitialValue) / totalInitialValue) * 100 
     : 0;
   
+  // Prepare data for portfolio composition chart
+  const portfolioComposition = investments.map((investment) => ({
+    name: investment.name,
+    value: investment.value,
+  }));
+  
+  // Colors for charts
+  const COLORS = [
+    "#0EA5E9",
+    "#10B981",
+    "#F59E0B",
+    "#EF4444",
+    "#8B5CF6",
+    "#EC4899",
+    "#6B7280",
+    "#14B8A6",
+  ];
+  
   // Generate growth data for portfolio projection
   const growthData = generateGrowthData(
     totalValue,
     investments,
-    userProfile?.total_income
+    userProfile?.totalIncome
   );
 
   // Calculate available funds (10% of user income if present, or estimated value)
-  const monthlyIncome = userProfile?.total_income ? userProfile.total_income / 12 : 0;
+  const monthlyIncome = userProfile?.totalIncome ? userProfile.totalIncome / 12 : 0;
   const availableFunds = monthlyIncome * 0.1; // 10% of monthly income for investment
-
-  const handleCurrencyChange = (currency: string) => {
-    setActiveCurrency(currency);
-  };
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: { 
-        staggerChildren: 0.1,
-        delayChildren: 0.2
-      }
-    }
-  };
-  
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { duration: 0.5 } }
-  };
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-4 text-left relative">
-        {/* Enhanced animated background with 3D parallax effect */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-teal-50 dark:from-gray-900 dark:to-gray-800"></div>
-          <motion.div 
-            className="absolute -top-20 -right-20 h-80 w-80 rounded-full bg-gradient-to-br from-purple-200/30 to-transparent blur-3xl dark:from-purple-900/20"
-            animate={{ 
-              y: [0, 10, 0], 
-              scale: [1, 1.05, 1],
-              opacity: [0.4, 0.5, 0.4] 
-            }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          ></motion.div>
-          <motion.div 
-            className="absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-gradient-to-br from-teal-200/30 to-transparent blur-3xl dark:from-teal-900/20"
-            animate={{ 
-              y: [0, -10, 0], 
-              scale: [1, 1.05, 1],
-              opacity: [0.4, 0.5, 0.4] 
-            }}
-            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          ></motion.div>
+      <div className="max-w-7xl mx-auto px-4 text-left">
+        <h1 className="text-3xl font-bold mb-6">Investments</h1>
+        
+        {/* Summary Cards */}
+        <InvestmentSummaryCards
+          totalValue={totalValue}
+          totalGain={totalGain}
+          totalReturnPercent={totalReturnPercent}
+          investments={investments}
+          projectedValue={growthData[growthData.length - 1]?.value || 0}
+        />
+        
+        {/* Live Stock Tracker */}
+        <LiveStockTracker />
+        
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          {/* Left Column - AI Advisor */}
+          <div className="lg:col-span-2">
+            <AIInvestmentAdvisor />
+          </div>
+          
+          {/* Right Column - Portfolio Rebalancer */}
+          <div>
+            <PortfolioRebalancer />
+          </div>
         </div>
         
-        <motion.div 
-          className="relative z-10"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.div 
-            className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6"
-            variants={itemVariants}
-          >
-            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-budget-blue to-budget-green mb-2 sm:mb-0">Investments</h1>
-            
-            <div className="flex items-center gap-2">
-              <Label htmlFor="currency" className="hidden sm:inline text-sm">Currency:</Label>
-              <Select defaultValue={activeCurrency} onValueChange={handleCurrencyChange}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="INR">Indian Rupee (₹)</SelectItem>
-                  <SelectItem value="USD">US Dollar ($)</SelectItem>
-                  <SelectItem value="EUR">Euro (€)</SelectItem>
-                  <SelectItem value="GBP">British Pound (£)</SelectItem>
-                  <SelectItem value="JPY">Japanese Yen (¥)</SelectItem>
-                  <SelectItem value="AUD">Australian Dollar (A$)</SelectItem>
-                  <SelectItem value="CAD">Canadian Dollar (C$)</SelectItem>
-                  <SelectItem value="SGD">Singapore Dollar (S$)</SelectItem>
-                  <SelectItem value="AED">UAE Dirham (د.إ)</SelectItem>
-                  <SelectItem value="CNY">Chinese Yuan (¥)</SelectItem>
-                  <SelectItem value="BTC">Bitcoin (₿)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </motion.div>
-          
-          {/* Summary Cards with motion */}
-          <motion.div variants={itemVariants}>
-            <InvestmentSummaryCards
-              totalValue={totalValue}
-              totalGain={totalGain}
-              totalReturnPercent={totalReturnPercent}
+        {/* Smart Investment Recommendations */}
+        <InvestmentRecommendations
+          availableFunds={availableFunds}
+          hasIncomeInfo={!!userProfile?.totalIncome}
+        />
+        
+        {/* Investment Suggestions */}
+        <InvestmentSuggestions
+          investmentSuggestions={investmentSuggestions}
+          hasIncomeInfo={!!userProfile?.totalIncome}
+        />
+        
+        {/* Lower Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Charts */}
+          <div className="lg:col-span-2 space-y-8">
+            <PortfolioCharts
               investments={investments}
-              projectedValue={growthData[growthData.length - 1]?.value || 0}
-              currency={activeCurrency}
+              portfolioComposition={portfolioComposition}
+              growthData={growthData}
+              COLORS={COLORS}
             />
-          </motion.div>
+          </div>
           
-          {/* Featured Bitcoin Tracker (Crypto Graph) */}
-          <motion.div variants={itemVariants}>
-            <BitcoinTracker />
-          </motion.div>
-          
-          {/* Live Stock Tracker */}
-          <Suspense fallback={
-            <div className="h-60 flex items-center justify-center">
-              <Loader className="animate-spin h-8 w-8 text-primary/60" />
-            </div>
-          }>
-            <motion.div variants={itemVariants}>
-              <LiveStockTracker />
-            </motion.div>
-          </Suspense>
-          
-          {/* Main Content Grid - Responsive layout */}
-          <motion.div 
-            className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8"
-            variants={itemVariants}
-          >
-            {/* Left Column - Simple Investment Form */}
-            <div className="lg:col-span-2">
-              <SimpleInvestmentForm />
-            </div>
-            
-            {/* Right Column - Investment List */}
-            <div>
-              <InvestmentList
-                investments={investments}
-                currency={activeCurrency}
-              />
-            </div>
-          </motion.div>
-          
-          {/* Smart Investment Recommendations */}
-          <motion.div variants={itemVariants}>
-            <InvestmentRecommendations
-              availableFunds={availableFunds}
-              hasIncomeInfo={!!userProfile?.total_income}
-              currency={activeCurrency}
+          {/* Right Column - Investment List */}
+          <div className="space-y-8">
+            <InvestmentList
+              investments={investments}
             />
-          </motion.div>
-          
-          {/* Investment Suggestions - Mobile optimized */}
-          <motion.div variants={itemVariants}>
-            <InvestmentSuggestions
-              investmentSuggestions={investmentSuggestions}
-              hasIncomeInfo={!!userProfile?.total_income}
-              currency={activeCurrency}
-            />
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </div>
     </Layout>
   );
