@@ -8,6 +8,7 @@ import { Check, AlertTriangle, RefreshCw, Loader, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 interface EmailVerificationFormProps {
   email: string;
@@ -164,14 +165,18 @@ const EmailVerificationForm: React.FC<EmailVerificationFormProps> = ({
             
             <div className="mt-4">
               <Label htmlFor="verification-code">Enter 6-digit code</Label>
-              <Input
-                id="verification-code"
-                placeholder="000000"
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                maxLength={6}
-                className="text-center text-xl tracking-widest mt-1"
-              />
+              <div className="mt-2">
+                <InputOTP maxLength={6} value={code} onChange={setCode}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
             </div>
           </motion.div>
         </CardContent>

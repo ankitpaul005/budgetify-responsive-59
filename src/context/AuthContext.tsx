@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useState,
@@ -160,7 +161,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Sign up the user
       const { data, error } = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          // Skip email verification for smoother sign-in experience
+          emailRedirectTo: window.location.origin + '/dashboard',
+          data: {
+            name
+          }
+        }
       });
 
       if (error) throw error;
@@ -181,6 +189,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const profile = await fetchUserProfile(data.user.id);
         setUserProfile(profile);
+        
+        toast.success("Account created successfully", {
+          description: "Welcome to Budgetify!",
+          icon: <Check className="h-5 w-5 text-green-500" />
+        });
       }
     } catch (error) {
       console.error("Signup error:", error);
@@ -253,52 +266,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Update user name
   const updateUserName = async (name: string) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({ name })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      // Update local user profile
-      if (userProfile) {
-        setUserProfile({
-          ...userProfile,
-          name
-        });
-      }
-    } catch (error) {
-      console.error("Error updating user name:", error);
-      throw error;
-    }
+    await updateProfile({ name });
   };
 
   // Update user income
   const updateUserIncome = async (income: number) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({ total_income: income })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      // Update local user profile
-      if (userProfile) {
-        setUserProfile({
-          ...userProfile,
-          total_income: income
-        });
-      }
-    } catch (error) {
-      console.error("Error updating user income:", error);
-      throw error;
-    }
+    await updateProfile({ total_income: income });
   };
 
   // Update user phone number
