@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -15,7 +14,7 @@ import useLocalStorage from "@/hooks/useLocalStorage";
 import { ActivityTypes, logActivity } from "@/services/activityService";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Phone, Check, AlertTriangle } from "lucide-react";
+import { RefreshCw, Phone } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -96,10 +95,7 @@ const Dashboard = () => {
       setTransactions(formattedTransactions);
     } catch (error: any) {
       console.error("Error fetching transactions:", error);
-      toast.error("Failed to load transactions", {
-        description: error.message || "Please try again later",
-        icon: <AlertTriangle className="h-5 w-5 text-destructive" />
-      });
+      toast.error("Failed to load transactions");
     } finally {
       setIsLoading(false);
     }
@@ -108,49 +104,33 @@ const Dashboard = () => {
   const handleUpdateIncome = async () => {
     const income = parseInt(newIncome);
     if (isNaN(income) || income < 0) {
-      toast.error("Please enter a valid income amount", {
-        icon: <AlertTriangle className="h-5 w-5 text-destructive" />
-      });
+      toast.error("Please enter a valid income amount");
       return;
     }
     
     try {
       console.log("Updating income to:", income);
       await updateUserIncome(income);
-      toast.success("Income updated successfully", {
-        icon: <Check className="h-5 w-5 text-green-500" />
-      });
+      toast.success("Income updated successfully");
       setIncomeDialogOpen(false);
     } catch (error) {
       console.error("Error updating income:", error);
-      toast.error("Failed to update income", {
-        description: error.message || "Please try again later",
-        icon: <AlertTriangle className="h-5 w-5 text-destructive" />
-      });
+      toast.error("Failed to update income");
     }
   };
   
   const handleUpdatePhoneNumber = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
-      toast.error("Please enter a valid phone number", {
-        icon: <AlertTriangle className="h-5 w-5 text-destructive" />
-      });
+      toast.error("Please enter a valid phone number");
       return;
     }
     
     try {
       await updateUserPhoneNumber(phoneNumber);
-      toast.success("Phone number updated successfully", {
-        description: "You can now use it for two-factor authentication",
-        icon: <Check className="h-5 w-5 text-green-500" />
-      });
       setPhoneDialogOpen(false);
     } catch (error) {
       console.error("Error updating phone number:", error);
-      toast.error("Failed to update phone number", {
-        description: error.message || "Please try again later",
-        icon: <AlertTriangle className="h-5 w-5 text-destructive" />
-      });
+      toast.error("Failed to update phone number");
     }
   };
   
@@ -159,16 +139,10 @@ const Dashboard = () => {
       setIsResetting(true);
       await resetUserData();
       setTransactions([]);
-      toast.success("All data has been reset successfully", {
-        description: "Your financial data has been cleared",
-        icon: <Check className="h-5 w-5 text-green-500" />
-      });
+      toast.success("All data has been reset successfully");
     } catch (error) {
       console.error("Error resetting data:", error);
-      toast.error("Failed to reset data", {
-        description: error.message || "Please try again later",
-        icon: <AlertTriangle className="h-5 w-5 text-destructive" />
-      });
+      toast.error("Failed to reset data");
     } finally {
       setIsResetting(false);
     }
@@ -176,9 +150,6 @@ const Dashboard = () => {
   
   const handleAddTransaction = (newTransaction: Transaction) => {
     setTransactions([newTransaction, ...transactions]);
-    toast.success("Transaction added successfully", {
-      icon: <Check className="h-5 w-5 text-green-500" />
-    });
   };
   
   const COLORS = [

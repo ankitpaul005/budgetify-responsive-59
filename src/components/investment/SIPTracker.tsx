@@ -23,147 +23,17 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 // Fetch SIP data from the Supabase Edge Function
 const fetchSIPData = async (categories?: string[]) => {
   try {
-    // Use mock data if no actual data available
-    const mockSIPData = [
-      {
-        id: 1,
-        name: "HDFC Mid-Cap Opportunities Fund",
-        category: "Mid Cap",
-        nav: 154.25,
-        oneYearReturn: 12.8,
-        threeYearReturn: 38.2,
-        fiveYearReturn: 68.5,
-        risk: "Moderate",
-        minInvestment: 500
-      },
-      {
-        id: 2,
-        name: "SBI Blue Chip Fund",
-        category: "Large Cap",
-        nav: 76.35,
-        oneYearReturn: 9.6,
-        threeYearReturn: 31.4,
-        fiveYearReturn: 54.2,
-        risk: "Low",
-        minInvestment: 500
-      },
-      {
-        id: 3,
-        name: "Axis Small Cap Fund",
-        category: "Small Cap",
-        nav: 97.82,
-        oneYearReturn: 16.7,
-        threeYearReturn: 42.1,
-        fiveYearReturn: 72.8,
-        risk: "High",
-        minInvestment: 500
-      },
-      {
-        id: 4,
-        name: "ICICI Prudential Technology Fund",
-        category: "Sectoral",
-        nav: 118.45,
-        oneYearReturn: 14.5,
-        threeYearReturn: 39.8,
-        fiveYearReturn: 67.9,
-        risk: "High",
-        minInvestment: 1000
-      },
-      {
-        id: 5,
-        name: "Aditya Birla Sun Life Tax Relief 96",
-        category: "ELSS",
-        nav: 64.72,
-        oneYearReturn: 10.9,
-        threeYearReturn: 34.2,
-        fiveYearReturn: 58.7,
-        risk: "Moderate",
-        minInvestment: 500
-      },
-      {
-        id: 6,
-        name: "Kotak Standard Multicap Fund",
-        category: "Multi Cap",
-        nav: 54.30,
-        oneYearReturn: 11.4,
-        threeYearReturn: 36.8,
-        fiveYearReturn: 63.5,
-        risk: "Moderate",
-        minInvestment: 1000
-      },
-      {
-        id: 7,
-        name: "Mirae Asset Emerging Bluechip",
-        category: "Large & Mid Cap",
-        nav: 101.65,
-        oneYearReturn: 13.2,
-        threeYearReturn: 40.5,
-        fiveYearReturn: 70.2,
-        risk: "Moderate",
-        minInvestment: 1000
-      },
-      {
-        id: 8,
-        name: "Parag Parikh Flexi Cap Fund",
-        category: "Flexi Cap",
-        nav: 85.90,
-        oneYearReturn: 12.1,
-        threeYearReturn: 37.9,
-        fiveYearReturn: 65.4,
-        risk: "Moderate",
-        minInvestment: 1000
-      },
-      {
-        id: 9,
-        name: "UTI Nifty Index Fund",
-        category: "Index",
-        nav: 131.25,
-        oneYearReturn: 8.5,
-        threeYearReturn: 29.8,
-        fiveYearReturn: 52.6,
-        risk: "Low",
-        minInvestment: 500
-      },
-      {
-        id: 10,
-        name: "HDFC Low Duration Fund",
-        category: "Debt",
-        nav: 48.75,
-        oneYearReturn: 6.2,
-        threeYearReturn: 18.5,
-        fiveYearReturn: 32.4,
-        risk: "Low",
-        minInvestment: 5000
-      }
-    ];
-    
-    try {
-      const { data } = await supabase.functions.invoke('fetch-sip-data', {
-        body: { categories }
-      });
-      
-      // Return real data if available, otherwise use mock data
-      if (data && Array.isArray(data) && data.length > 0) {
-        console.log("Returning real SIP data:", data);
-        return data;
-      }
-    } catch (error) {
-      console.log("Error fetching SIP data from supabase, using mock data:", error);
-    }
-    
-    // Filter by category if specified
-    if (categories && categories.length > 0 && categories[0] !== "All") {
-      return mockSIPData.filter(fund => categories.includes(fund.category));
-    }
-    
-    return mockSIPData;
+    const { data } = await supabase.functions.invoke('fetch-sip-data', {
+      body: { categories }
+    });
+    return data || [];
   } catch (error) {
-    console.error("Error in fetchSIPData:", error);
+    console.error("Error fetching SIP data:", error);
     return [];
   }
 };
 
-// Generate historical data for a SIP fund
+// Generate mock historical data for a SIP fund
 const generateHistoricalData = (days = 90, startNav = 100, volatility = 0.01) => {
   const data = [];
   let currentNav = startNav;
@@ -180,7 +50,7 @@ const generateHistoricalData = (days = 90, startNav = 100, volatility = 0.01) =>
     
     data.push({
       date: format(date, "MMM dd"),
-      nav: parseFloat(currentNav.toFixed(2)),
+      nav: currentNav.toFixed(2),
     });
   }
   

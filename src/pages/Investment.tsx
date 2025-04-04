@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -8,7 +9,6 @@ import { generateGrowthData } from "@/utils/investmentUtils";
 import { ActivityTypes, logActivity } from "@/services/activityService";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
 
 // Import refactored components
 import InvestmentSummaryCards from "@/components/investment/InvestmentSummaryCards";
@@ -23,10 +23,7 @@ import SIPTracker from "@/components/investment/SIPTracker";
 import SimpleInvestmentForm from "@/components/investment/SimpleInvestmentForm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader, RefreshCw } from "lucide-react";
-import { fetchLiveExchangeRates } from "@/utils/formatting";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { Loader } from "lucide-react";
 
 const InvestmentPage = () => {
   const { isAuthenticated, user, userProfile } = useAuth();
@@ -38,15 +35,6 @@ const InvestmentPage = () => {
   );
   
   const [activeCurrency, setActiveCurrency] = useState("INR");
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  // Fetch live exchange rates
-  const { data: liveRates, isLoading: isLoadingRates, refetch: refetchRates } = useQuery({
-    queryKey: ["exchange-rates"],
-    queryFn: fetchLiveExchangeRates,
-    refetchOnWindowFocus: false,
-    refetchInterval: 60000, // Refresh every minute
-  });
   
   // Redirect if not authenticated
   useEffect(() => {
@@ -88,19 +76,6 @@ const InvestmentPage = () => {
 
   const handleCurrencyChange = (currency: string) => {
     setActiveCurrency(currency);
-  };
-  
-  // Refresh exchange rates
-  const handleRefreshRates = async () => {
-    setIsRefreshing(true);
-    try {
-      await refetchRates();
-      toast.success("Exchange rates refreshed");
-    } catch (error) {
-      toast.error("Failed to refresh exchange rates");
-    } finally {
-      setIsRefreshing(false);
-    }
   };
 
   // Animation variants
@@ -159,40 +134,25 @@ const InvestmentPage = () => {
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-budget-blue to-budget-green mb-2 sm:mb-0">Investments</h1>
             
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="currency" className="hidden sm:inline text-sm">Currency:</Label>
-                <Select defaultValue={activeCurrency} onValueChange={handleCurrencyChange}>
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="INR">Indian Rupee (₹)</SelectItem>
-                    <SelectItem value="USD">US Dollar ($)</SelectItem>
-                    <SelectItem value="EUR">Euro (€)</SelectItem>
-                    <SelectItem value="GBP">British Pound (£)</SelectItem>
-                    <SelectItem value="JPY">Japanese Yen (¥)</SelectItem>
-                    <SelectItem value="AUD">Australian Dollar (A$)</SelectItem>
-                    <SelectItem value="CAD">Canadian Dollar (C$)</SelectItem>
-                    <SelectItem value="SGD">Singapore Dollar (S$)</SelectItem>
-                    <SelectItem value="AED">UAE Dirham (د.إ)</SelectItem>
-                    <SelectItem value="CNY">Chinese Yuan (¥)</SelectItem>
-                    <SelectItem value="BTC">Bitcoin (₿)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button 
-                  size="icon" 
-                  variant="outline" 
-                  onClick={handleRefreshRates} 
-                  disabled={isRefreshing}
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
-              {isLoadingRates ? (
-                <span className="text-xs text-muted-foreground">Loading rates...</span>
-              ) : liveRates ? (
-                <span className="text-xs text-muted-foreground">Rates updated</span>
-              ) : null}
+              <Label htmlFor="currency" className="hidden sm:inline text-sm">Currency:</Label>
+              <Select defaultValue={activeCurrency} onValueChange={handleCurrencyChange}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="INR">Indian Rupee (₹)</SelectItem>
+                  <SelectItem value="USD">US Dollar ($)</SelectItem>
+                  <SelectItem value="EUR">Euro (€)</SelectItem>
+                  <SelectItem value="GBP">British Pound (£)</SelectItem>
+                  <SelectItem value="JPY">Japanese Yen (¥)</SelectItem>
+                  <SelectItem value="AUD">Australian Dollar (A$)</SelectItem>
+                  <SelectItem value="CAD">Canadian Dollar (C$)</SelectItem>
+                  <SelectItem value="SGD">Singapore Dollar (S$)</SelectItem>
+                  <SelectItem value="AED">UAE Dirham (د.إ)</SelectItem>
+                  <SelectItem value="CNY">Chinese Yuan (¥)</SelectItem>
+                  <SelectItem value="BTC">Bitcoin (₿)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </motion.div>
           
@@ -221,17 +181,6 @@ const InvestmentPage = () => {
           }>
             <motion.div variants={itemVariants}>
               <LiveStockTracker />
-            </motion.div>
-          </Suspense>
-          
-          {/* SIP Investment Tracker */}
-          <Suspense fallback={
-            <div className="h-60 flex items-center justify-center">
-              <Loader className="animate-spin h-8 w-8 text-primary/60" />
-            </div>
-          }>
-            <motion.div variants={itemVariants}>
-              <SIPTracker />
             </motion.div>
           </Suspense>
           

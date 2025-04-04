@@ -2,15 +2,15 @@
 // Currency conversion rates against USD (as of August 2024)
 export const currencyRates: Record<string, number> = {
   USD: 1,
-  INR: 83.71,     // 1 USD = 83.71 INR
-  EUR: 0.91,      // 1 USD = 0.91 EUR
-  GBP: 0.77,      // 1 USD = 0.77 GBP
-  JPY: 147.26,    // 1 USD = 147.26 JPY
-  CAD: 1.35,      // 1 USD = 1.35 CAD
-  AUD: 1.49,      // 1 USD = 1.49 AUD
-  SGD: 1.33,      // 1 USD = 1.33 SGD
+  INR: 83.2,      // 1 USD = 83.2 INR
+  EUR: 0.92,      // 1 USD = 0.92 EUR
+  GBP: 0.78,      // 1 USD = 0.78 GBP
+  JPY: 149.2,     // 1 USD = 149.2 JPY
+  CAD: 1.36,      // 1 USD = 1.36 CAD
+  AUD: 1.52,      // 1 USD = 1.52 AUD
+  SGD: 1.35,      // 1 USD = 1.35 SGD
   AED: 3.67,      // 1 USD = 3.67 AED
-  CNY: 7.08,      // 1 USD = 7.08 CNY
+  CNY: 7.15,      // 1 USD = 7.15 CNY
   BTC: 0.000016,  // 1 USD = 0.000016 BTC (approximate)
 };
 
@@ -90,27 +90,4 @@ export const convertCurrency = (amount: number, fromCurrency: string, toCurrency
   
   // Then convert from USD to the target currency
   return valueInUSD * currencyRates[toCurrency];
-};
-
-// Live exchange rate fetcher (for Investment page)
-export const fetchLiveExchangeRates = async (): Promise<Record<string, number> | null> => {
-  try {
-    // In a real application, this would call an API
-    // For now, we'll return our static rates with a slight random variation
-    // to simulate "live" rates
-    const liveRates: Record<string, number> = { ...currencyRates };
-    
-    Object.keys(liveRates).forEach(currency => {
-      if (currency !== 'USD') {
-        // Add small random variation (-0.5% to +0.5%)
-        const variation = (Math.random() - 0.5) * 0.01; 
-        liveRates[currency] = currencyRates[currency] * (1 + variation);
-      }
-    });
-    
-    return liveRates;
-  } catch (error) {
-    console.error("Error fetching live exchange rates:", error);
-    return null;
-  }
 };
