@@ -88,6 +88,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          phone_number: string | null
           total_income: number | null
           updated_at: string | null
         }
@@ -96,6 +97,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          phone_number?: string | null
           total_income?: number | null
           updated_at?: string | null
         }
@@ -104,6 +106,7 @@ export type Database = {
           email?: string
           id?: string
           name?: string
+          phone_number?: string | null
           total_income?: number | null
           updated_at?: string | null
         }

@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useState,
@@ -16,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Check, AlertTriangle, Loader, LogIn, UserPlus, LogOut, RefreshCw } from "lucide-react";
 
-// Define the UserProfile interface to match our database schema
+// Update UserProfile interface to include phone_number
 export interface UserProfile {
   id: string;
   email: string;
@@ -25,7 +24,7 @@ export interface UserProfile {
   created_at?: string | null;
   updated_at?: string | null;
   currency?: string;
-  phone_number?: string;
+  phone_number?: string | null; // Make it explicitly nullable
 }
 
 interface AuthContextProps {
@@ -40,7 +39,6 @@ interface AuthContextProps {
   updateUserName: (name: string) => Promise<void>;
   updateUserPhoneNumber: (phoneNumber: string) => Promise<void>;
   resetUserData: () => Promise<void>;
-  // Adding missing methods that are used in Settings.tsx
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -225,7 +223,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Alias for logout to maintain compatibility with Settings.tsx
   const signOut = logout;
 
-  // Update user profile general method
+  // Update profile method to handle phone_number
   const updateProfile = async (userData: Partial<UserProfile>) => {
     if (!user) return;
 
@@ -305,28 +303,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Update user phone number
   const updateUserPhoneNumber = async (phoneNumber: string) => {
-    if (!user) return;
-
-    try {
-      // Update user phone number
-      const { error } = await supabase
-        .from('users')
-        .update({ phone_number: phoneNumber })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      // Update local user profile
-      if (userProfile) {
-        setUserProfile({
-          ...userProfile,
-          phone_number: phoneNumber
-        });
-      }
-    } catch (error) {
-      console.error("Error updating user phone number:", error);
-      throw error;
-    }
+    await updateProfile({ phone_number: phoneNumber });
   };
 
   // Reset user data
@@ -369,7 +346,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         updateUserName,
         updateUserPhoneNumber,
         resetUserData,
-        // Add the missing methods
         updateProfile,
         signOut
       }}
