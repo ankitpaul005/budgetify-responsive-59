@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -130,13 +129,11 @@ const StockDetailView: React.FC<StockDetailViewProps> = ({ stock, onBack }) => {
       };
 
       // Log activity
-      if (user) {
-        logActivity(
-          user.id,
-          ActivityTypes.INVESTMENT,
-          `Purchased ${qty} shares of ${stock.symbol} for ${formatCurrency(totalAmount)}`
-        );
-      }
+      await logActivity(
+        user.id,
+        ActivityTypes.INVESTMENT,
+        `Purchased ${qty} shares of ${stock.symbol} for ${formatCurrency(totalAmount)}`
+      );
 
       // Add to investments
       setInvestments([newInvestment, ...investments]);

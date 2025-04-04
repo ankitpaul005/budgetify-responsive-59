@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/utils/formatting";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { ActivityTypes, logActivity } from "@/services/activityService";
 
 // Fetch SIP data from the Supabase Edge Function
 const fetchSIPData = async (categories?: string[]) => {
@@ -260,6 +261,13 @@ const SIPTracker = () => {
           .insert(result.transaction);
           
         if (error) throw error;
+        
+        // Log the investment activity
+        await logActivity(
+          user.id,
+          ActivityTypes.INVESTMENT,
+          `Invested ${formatCurrency(amount)} in ${selectedFund.name} SIP`
+        );
       }
       
       toast.success(`Successfully invested ${formatCurrency(amount)} in ${selectedFund.name}`);

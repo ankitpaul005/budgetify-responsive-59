@@ -11,6 +11,7 @@ import { processStockInvestment } from "@/utils/dashboardUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/utils/formatting";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ActivityTypes, logActivity } from "@/services/activityService"; 
 
 const SimpleInvestmentForm: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -101,6 +102,13 @@ const SimpleInvestmentForm: React.FC = () => {
         .insert([result.transaction]);
 
       if (error) throw error;
+      
+      // Log the investment activity
+      await logActivity(
+        user.id,
+        ActivityTypes.INVESTMENT,
+        `Invested in ${quantityNum} shares of ${selectedStock.symbol} for ${formatCurrency(totalAmount)}`
+      );
 
       toast.success(`Successfully invested in ${quantityNum} shares of ${selectedStock.symbol}`);
       
