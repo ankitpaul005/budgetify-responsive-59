@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useState,
@@ -13,10 +14,16 @@ import {
 } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Tables } from "@/integrations/supabase/types";
 import { Check, AlertTriangle, Loader, LogIn, UserPlus, LogOut, RefreshCw } from "lucide-react";
 
-export interface UserProfile extends Tables<"users"> {
+// Define the UserProfile interface to match our database schema
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  total_income: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
   currency?: string;
   phone_number?: string;
 }

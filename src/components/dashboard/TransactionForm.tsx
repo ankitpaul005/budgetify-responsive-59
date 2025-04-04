@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
@@ -32,7 +31,6 @@ const TransactionForm = ({ userId, onAddTransaction }) => {
     try {
       setIsSubmitting(true);
       const newTransaction = {
-        // Remove the uuidv4() call as Supabase will generate the ID
         user_id: userId,
         description,
         amount: Number(amount),
