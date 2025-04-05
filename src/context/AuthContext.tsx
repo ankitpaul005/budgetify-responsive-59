@@ -120,7 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [fetchUserProfile]);
 
-  // Login function
+  // Login function - Simplified to bypass email verification
   const login = async (email: string, password: string) => {
     try {
       console.log("Attempting login for:", email);
@@ -148,12 +148,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Login error:", error);
       let errorMessage = "Invalid email or password";
       
-      if (error instanceof AuthError) {
-        if (error.message.includes("Email not confirmed")) {
-          errorMessage = "Please verify your email before logging in";
-        }
-      }
-      
       toast.error("Login failed", {
         description: errorMessage,
         icon: <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -162,19 +156,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Signup function
+  // Signup function - Simplified without email verification
   const signup = async (email: string, password: string, name: string) => {
     try {
-      // Sign up the user with auto confirmation for better UX
+      // Sign up with auto-confirm
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          // Auto-confirm email for smoother sign-in experience
           data: {
-            name,
-            email_confirm: true
-          }
+            name
+          },
+          emailRedirectTo: window.location.origin + '/dashboard',
         }
       });
 
@@ -194,17 +187,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           throw profileError;
         }
 
-        // Try to login immediately after signup for a seamless experience
+        // Automatically sign in after signup
         try {
-          await supabase.auth.signInWithPassword({
-            email,
-            password
-          });
+          await login(email, password);
           
-          const profile = await fetchUserProfile(data.user.id);
-          setUserProfile(profile);
-          
-          toast.success("Account created and logged in", {
+          toast.success("Account created successfully", {
             description: "Welcome to Budgetify!",
             icon: <Check className="h-5 w-5 text-green-500" />
           });

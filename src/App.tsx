@@ -24,6 +24,7 @@ import ContactPage from "./pages/Contact";
 import ChatbotDialog from "./components/chat/ChatbotDialog";
 import VoiceCommandListener from "./components/voice/VoiceCommandListener";
 import SignupPrompt from "./components/auth/SignupPrompt";
+import BottomNav from "./components/BottomNav";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ function App() {
               <Route path="/contact" element={<ContactPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
+            <BottomNav />
             <SignupPrompt />
             <ChatbotDialog />
             <VoiceCommandListener />

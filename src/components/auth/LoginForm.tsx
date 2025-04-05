@@ -1,10 +1,10 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "react-router-dom";
-import { User, Lock, Loader, Mail } from "lucide-react";
+import { User, Lock, Loader } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 interface LoginFormProps {
   onSubmit: (values: LoginFormValues) => Promise<void>;
-  onSendMagicLink: () => Promise<void>;
   isLoading: boolean;
-  isSendingMagicLink: boolean;
 }
 
 // Animation variants
@@ -47,9 +45,7 @@ const itemVariants = {
 
 const LoginForm: React.FC<LoginFormProps> = ({
   onSubmit,
-  onSendMagicLink,
-  isLoading,
-  isSendingMagicLink
+  isLoading
 }) => {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -173,31 +169,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
                 </>
               ) : (
                 "Sign in"
-              )}
-            </Button>
-          </motion.div>
-
-          <motion.div 
-            className="flex justify-center pt-2"
-            variants={itemVariants}
-          >
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onSendMagicLink}
-              disabled={isSendingMagicLink}
-              className="text-sm"
-            >
-              {isSendingMagicLink ? (
-                <>
-                  <Loader className="animate-spin mr-2 h-4 w-4" />
-                  Sending magic link...
-                </>
-              ) : (
-                <>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Sign in with magic link
-                </>
               )}
             </Button>
           </motion.div>
