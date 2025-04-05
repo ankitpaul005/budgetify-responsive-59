@@ -32,16 +32,6 @@ const LoginPage = () => {
       setIsLoading(true);
       console.log("Login attempt with:", values.email);
       
-      // Add validation for email format
-      if (!values.email.includes('@') || !values.email.includes('.')) {
-        toast.error("Invalid email format", {
-          description: "Please enter a valid email address",
-          icon: <AlertTriangle className="h-5 w-5 text-red-500" />
-        });
-        setIsLoading(false);
-        return;
-      }
-      
       await login(values.email, values.password);
       
       toast.success("Login successful", {

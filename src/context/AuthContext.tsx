@@ -69,6 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
 
+      console.log("Fetched user profile:", data);
       return data as UserProfile;
     } catch (error) {
       console.error("Error fetching user profile:", error);
@@ -78,7 +79,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const createUserProfile = useCallback(async (userId: string, email: string, name: string) => {
     try {
-      const { error } = await supabase
+      console.log("Creating user profile for:", userId, email, name);
+      const { data, error } = await supabase
         .from('users')
         .insert([
           {
@@ -86,14 +88,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email,
             name
           }
-        ]);
+        ])
+        .select();
       
       if (error) {
         console.error("Error creating user profile:", error);
         return null;
       }
       
-      return { id: userId, email, name, total_income: null } as UserProfile;
+      console.log("Created user profile:", data);
+      return data[0] as UserProfile;
     } catch (error) {
       console.error("Error creating user profile:", error);
       return null;
@@ -157,7 +161,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [fetchUserProfile, createUserProfile]);
 
-  // Login function - Simplified to bypass email verification
+  // Login function - Allow immediate login without email verification
   const login = async (email: string, password: string) => {
     try {
       console.log("Attempting login for:", email);
@@ -173,14 +177,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       console.log("Login successful, user:", !!data.user);
       if (data.user) {
-        const profile = await fetchUserProfile(data.user.id);
+        // Try to fetch existing profile
+        let profile = await fetchUserProfile(data.user.id);
+        
+        // If profile doesn't exist, create one
+        if (!profile) {
+          profile = await createUserProfile(
+            data.user.id, 
+            data.user.email || "", 
+            data.user.user_metadata?.name || data.user.email?.split('@')[0] || "User"
+          );
+        }
+        
         setUserProfile(profile);
+        setUser(data.user);
+        setSession(data.session);
+        setIsAuthenticated(true);
         
         toast.success("Logged in successfully", {
           description: `Welcome back, ${profile?.name || email}!`,
           icon: <Check className="h-5 w-5 text-green-500" />
         });
+        
+        return;
       }
+      
+      // Should never reach here if login is successful
+      throw new Error("Login succeeded but no user returned");
     } catch (error) {
       console.error("Login error:", error);
       let errorMessage = "Invalid email or password";
@@ -206,7 +229,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Signup function with auto-confirm and improved validation
   const signup = async (email: string, password: string, name: string) => {
     try {
-      // Sign up with auto-confirm
+      console.log("Signing up:", email, name);
+      
+      // Sign up with email confirmation disabled
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -214,6 +239,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           data: {
             name
           },
+          // Don't require email verification
           emailRedirectTo: window.location.origin + '/dashboard',
         }
       });
