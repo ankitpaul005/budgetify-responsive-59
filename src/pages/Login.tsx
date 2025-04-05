@@ -21,6 +21,7 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
+  const [emailForVerification, setEmailForVerification] = useState("");
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   
@@ -34,6 +35,10 @@ const LoginPage = () => {
   const handleSubmit = async (values: LoginFormValues) => {
     try {
       setIsLoading(true);
+      console.log("Login attempt with:", values.email);
+      
+      // Store email for verification if needed
+      setEmailForVerification(values.email);
       
       // Try direct login first without email verification
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -42,6 +47,8 @@ const LoginPage = () => {
       });
       
       if (error) {
+        console.log("Login error response:", error);
+        
         // If email not confirmed, show verification form
         if (error.message.includes("Email not confirmed")) {
           setShowVerification(true);
@@ -49,11 +56,22 @@ const LoginPage = () => {
             description: "We've sent you a verification email",
             icon: <Mail className="h-5 w-5 text-blue-500" />
           });
+          
+          // Send magic link for verification
+          await supabase.auth.signInWithOtp({
+            email: values.email,
+            options: {
+              emailRedirectTo: window.location.origin + '/dashboard',
+            }
+          });
+          
+          return;
         } else {
           throw error;
         }
-        return;
       }
+      
+      console.log("Login successful:", !!data?.user);
       
       toast.success("Login successful", {
         description: "Welcome back to Budgetify!",
@@ -61,10 +79,19 @@ const LoginPage = () => {
       });
       
       navigate("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
+      
+      // Handle other error cases
+      let errorMessage = "Please check your credentials and try again";
+      if (error.message?.includes("rate limited")) {
+        errorMessage = "Too many login attempts. Please try again later.";
+      } else if (error.message?.includes("credentials")) {
+        errorMessage = "Invalid email or password";
+      }
+      
       toast.error("Login failed", {
-        description: error.message || "Please check your credentials and try again",
+        description: errorMessage,
         icon: <AlertTriangle className="h-5 w-5 text-red-500" />
       });
     } finally {
@@ -85,6 +112,7 @@ const LoginPage = () => {
 
     try {
       setIsSendingMagicLink(true);
+      setEmailForVerification(email);
       
       const { error } = await supabase.auth.signInWithOtp({
         email,
@@ -100,7 +128,7 @@ const LoginPage = () => {
         description: "Please check your email inbox",
         icon: <Mail className="h-5 w-5 text-green-500" />
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending magic link:", error);
       toast.error("Failed to send magic link", {
         description: error.message || "Please try again later",
@@ -124,7 +152,7 @@ const LoginPage = () => {
     <AnimatedBackground>
       {showVerification ? (
         <EmailVerificationForm 
-          email={document.querySelector<HTMLInputElement>('input[name="email"]')?.value || ''} 
+          email={emailForVerification} 
           onVerificationComplete={handleVerificationComplete}
           onBackToEmail={handleBackToLogin}
         />

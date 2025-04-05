@@ -81,6 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // First, set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
+        console.log("Auth state changed:", event, !!currentSession?.user);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setIsAuthenticated(!!currentSession?.user);
@@ -99,6 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log("Got existing session:", !!currentSession?.user);
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       setIsAuthenticated(!!currentSession?.user);
@@ -121,13 +123,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Login function
   const login = async (email: string, password: string) => {
     try {
+      console.log("Attempting login for:", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Login error details:", error);
+        throw error;
+      }
 
+      console.log("Login successful, user:", !!data.user);
       if (data.user) {
         const profile = await fetchUserProfile(data.user.id);
         setUserProfile(profile);
@@ -158,15 +165,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Signup function
   const signup = async (email: string, password: string, name: string) => {
     try {
-      // Sign up the user
+      // Sign up the user with auto confirmation for better UX
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          // Skip email verification for smoother sign-in experience
-          emailRedirectTo: window.location.origin + '/dashboard',
+          // Auto-confirm email for smoother sign-in experience
           data: {
-            name
+            name,
+            email_confirm: true
           }
         }
       });
@@ -187,13 +194,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           throw profileError;
         }
 
-        const profile = await fetchUserProfile(data.user.id);
-        setUserProfile(profile);
-        
-        toast.success("Account created successfully", {
-          description: "Welcome to Budgetify!",
-          icon: <Check className="h-5 w-5 text-green-500" />
-        });
+        // Try to login immediately after signup for a seamless experience
+        try {
+          await supabase.auth.signInWithPassword({
+            email,
+            password
+          });
+          
+          const profile = await fetchUserProfile(data.user.id);
+          setUserProfile(profile);
+          
+          toast.success("Account created and logged in", {
+            description: "Welcome to Budgetify!",
+            icon: <Check className="h-5 w-5 text-green-500" />
+          });
+        } catch (loginError) {
+          console.log("Auto-login after signup failed:", loginError);
+          toast.info("Account created! Please log in", {
+            description: "Your account has been created. You can now log in.",
+            icon: <Check className="h-5 w-5 text-green-500" />
+          });
+        }
       }
     } catch (error) {
       console.error("Signup error:", error);

@@ -40,10 +40,19 @@ const EmailVerificationForm: React.FC<EmailVerificationFormProps> = ({
 
   // Send magic link on component mount
   useEffect(() => {
-    sendMagicLink();
-  }, []);
+    if (email) {
+      sendMagicLink();
+    }
+  }, [email]);
 
   const sendMagicLink = async () => {
+    if (!email) {
+      toast.error("Email address is required", {
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
+      return;
+    }
+    
     try {
       setIsResending(true);
       
@@ -62,7 +71,7 @@ const EmailVerificationForm: React.FC<EmailVerificationFormProps> = ({
         description: "Please check your email inbox",
         icon: <Mail className="h-5 w-5 text-green-500" />,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending magic link:", error);
       toast.error("Failed to send magic link", {
         description: error.message || "Please try again later",
@@ -86,7 +95,7 @@ const EmailVerificationForm: React.FC<EmailVerificationFormProps> = ({
       setIsLoading(true);
       
       // Verify OTP code
-      const { error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.auth.verifyOtp({
         email,
         token: code,
         type: 'email'
@@ -94,12 +103,14 @@ const EmailVerificationForm: React.FC<EmailVerificationFormProps> = ({
       
       if (error) throw error;
       
+      console.log("Verification successful:", !!data?.user);
+      
       toast.success("Email verified successfully!", {
         icon: <Check className="h-5 w-5 text-green-500" />
       });
       
       onVerificationComplete();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error verifying code:", error);
       toast.error("Invalid verification code", {
         description: error.message || "Please check the code and try again",
