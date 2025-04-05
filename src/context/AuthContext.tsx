@@ -25,7 +25,7 @@ export interface UserProfile {
   created_at?: string | null;
   updated_at?: string | null;
   currency?: string;
-  phone_number?: string | null; // Make it explicitly nullable
+  phone_number?: string | null;
 }
 
 interface AuthContextProps {
@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          // User profile doesn't exist, create one
+          console.log("User profile doesn't exist, creating one");
           return null;
         }
         throw error;
@@ -75,9 +75,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return null;
     }
   }, []);
+  
+  const createUserProfile = useCallback(async (userId: string, email: string, name: string) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .insert([
+          {
+            id: userId,
+            email,
+            name
+          }
+        ]);
+      
+      if (error) {
+        console.error("Error creating user profile:", error);
+        return null;
+      }
+      
+      return { id: userId, email, name, total_income: null } as UserProfile;
+    } catch (error) {
+      console.error("Error creating user profile:", error);
+      return null;
+    }
+  }, []);
 
   // Initialize authentication state
   useEffect(() => {
+    console.log("Setting up auth state listener");
+    
     // First, set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
@@ -89,7 +115,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Defer profile fetching to avoid Supabase auth deadlock
         if (currentSession?.user) {
           setTimeout(async () => {
-            const profile = await fetchUserProfile(currentSession.user.id);
+            let profile = await fetchUserProfile(currentSession.user.id);
+            
+            // If profile doesn't exist, create one
+            if (!profile && currentSession?.user) {
+              const userData = currentSession.user.user_metadata;
+              profile = await createUserProfile(
+                currentSession.user.id, 
+                currentSession.user.email || "", 
+                userData?.name || currentSession.user.email?.split('@')[0] || "User"
+              );
+            }
+            
             setUserProfile(profile);
           }, 0);
         } else {
@@ -118,7 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [fetchUserProfile]);
+  }, [fetchUserProfile, createUserProfile]);
 
   // Login function - Simplified to bypass email verification
   const login = async (email: string, password: string) => {
@@ -148,6 +185,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Login error:", error);
       let errorMessage = "Invalid email or password";
       
+      if (error instanceof AuthError) {
+        if (error.message.includes("Invalid login credentials")) {
+          errorMessage = "Invalid email or password. Please check your credentials.";
+        } else if (error.message.includes("Email not confirmed")) {
+          errorMessage = "Please confirm your email before logging in.";
+        } else if (error.message.includes("rate limited")) {
+          errorMessage = "Too many login attempts. Please try again later.";
+        }
+      }
+      
       toast.error("Login failed", {
         description: errorMessage,
         icon: <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -156,7 +203,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Signup function - Simplified without email verification
+  // Signup function with auto-confirm and improved validation
   const signup = async (email: string, password: string, name: string) => {
     try {
       // Sign up with auto-confirm
@@ -173,36 +220,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
+      console.log("Signup successful, user:", !!data.user);
+      
       if (data.user) {
         // Create a user profile
-        const { error: profileError } = await supabase.from('users').insert([
-          {
-            id: data.user.id,
-            email,
-            name
-          }
-        ]);
-
-        if (profileError) {
-          throw profileError;
-        }
-
-        // Automatically sign in after signup
-        try {
-          await login(email, password);
+        const profile = await createUserProfile(data.user.id, email, name);
+        
+        if (profile) {
+          setUserProfile(profile);
+          setUser(data.user);
+          setSession(data.session);
+          setIsAuthenticated(true);
           
           toast.success("Account created successfully", {
             description: "Welcome to Budgetify!",
             icon: <Check className="h-5 w-5 text-green-500" />
           });
-        } catch (loginError) {
-          console.log("Auto-login after signup failed:", loginError);
-          toast.info("Account created! Please log in", {
-            description: "Your account has been created. You can now log in.",
-            icon: <Check className="h-5 w-5 text-green-500" />
-          });
+          
+          return;
         }
       }
+      
+      // If we got here without returning, something went wrong with profile creation
+      // but the user was created successfully
+      toast.info("Account created! Please log in", {
+        description: "Your account has been created. You can now log in.",
+        icon: <Check className="h-5 w-5 text-green-500" />
+      });
     } catch (error) {
       console.error("Signup error:", error);
       
@@ -210,6 +254,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error instanceof AuthError) {
         if (error.message.includes("already registered")) {
           errorMessage = "This email is already registered";
+        } else if (error.message.includes("password")) {
+          errorMessage = "Password is too weak. Please include uppercase, lowercase, numbers and symbols.";
         }
       }
       
@@ -307,8 +353,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq('user_id', user.id);
 
       if (activityError) throw activityError;
+      
+      toast.success("User data reset successfully");
     } catch (error) {
       console.error("Error resetting user data:", error);
+      toast.error("Failed to reset user data");
       throw error;
     }
   };

@@ -21,6 +21,7 @@ const SignUpPage = () => {
   // Password strength indicators
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [passwordFeedback, setPasswordFeedback] = useState("");
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   
   // Redirect if already authenticated
   useEffect(() => {
@@ -29,13 +30,24 @@ const SignUpPage = () => {
     }
   }, [isAuthenticated, navigate]);
   
-  // Check password strength
+  // Check password strength and requirements
   useEffect(() => {
     if (!password) {
       setPasswordStrength(0);
       setPasswordFeedback("");
+      setPasswordErrors([]);
       return;
     }
+    
+    // Password requirements
+    const errors: string[] = [];
+    if (password.length < 8) errors.push("At least 8 characters");
+    if (!/\d/.test(password)) errors.push("At least one number");
+    if (!/[A-Z]/.test(password)) errors.push("At least one uppercase letter");
+    if (!/[a-z]/.test(password)) errors.push("At least one lowercase letter");
+    if (!/[^A-Za-z0-9]/.test(password)) errors.push("At least one symbol");
+    
+    setPasswordErrors(errors);
     
     // Simple password strength calculation
     let strength = 0;
@@ -48,6 +60,9 @@ const SignUpPage = () => {
     
     // Contains uppercase
     if (/[A-Z]/.test(password)) strength += 1;
+    
+    // Contains lowercase
+    if (/[a-z]/.test(password)) strength += 1;
     
     // Contains special character
     if (/[^A-Za-z0-9]/.test(password)) strength += 1;
@@ -69,6 +84,7 @@ const SignUpPage = () => {
         setPasswordFeedback("Good");
         break;
       case 4:
+      case 5:
         setPasswordFeedback("Strong");
         break;
       default:
@@ -86,8 +102,19 @@ const SignUpPage = () => {
       return;
     }
     
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters", {
+    // Validate email format
+    if (!email.includes('@') || !email.includes('.')) {
+      toast.error("Invalid email format", {
+        description: "Please enter a valid email address",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+      });
+      return;
+    }
+    
+    // Check password requirements
+    if (passwordErrors.length > 0) {
+      toast.error("Password doesn't meet requirements", {
+        description: "Please fix the password issues and try again",
         icon: <AlertTriangle className="h-5 w-5 text-red-500" />
       });
       return;
@@ -103,10 +130,16 @@ const SignUpPage = () => {
       });
       
       navigate("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Signup error:", error);
+      
+      let errorMessage = "Failed to create account. Please try again.";
+      if (error.message?.includes("already registered")) {
+        errorMessage = "This email is already registered. Try logging in instead.";
+      }
+      
       toast.error("Failed to create account", {
-        description: "Please try again with different credentials",
+        description: errorMessage,
         icon: <AlertTriangle className="h-5 w-5 text-red-500" />
       });
     } finally {
@@ -232,6 +265,33 @@ const SignUpPage = () => {
                         "bg-green-500 w-full"
                       } transition-all duration-300`}
                     ></div>
+                  </div>
+                  
+                  {/* Password requirements list */}
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs text-gray-500">Password requirements:</p>
+                    <ul className="text-xs space-y-1 pl-2">
+                      <li className={`flex items-center gap-1 ${!password.length || password.length >= 8 ? 'text-green-500' : 'text-red-500'}`}>
+                        {!password.length || password.length >= 8 ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                        At least 8 characters
+                      </li>
+                      <li className={`flex items-center gap-1 ${!password.length || /\d/.test(password) ? 'text-green-500' : 'text-red-500'}`}>
+                        {!password.length || /\d/.test(password) ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                        At least one number
+                      </li>
+                      <li className={`flex items-center gap-1 ${!password.length || /[A-Z]/.test(password) ? 'text-green-500' : 'text-red-500'}`}>
+                        {!password.length || /[A-Z]/.test(password) ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                        At least one uppercase letter
+                      </li>
+                      <li className={`flex items-center gap-1 ${!password.length || /[a-z]/.test(password) ? 'text-green-500' : 'text-red-500'}`}>
+                        {!password.length || /[a-z]/.test(password) ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                        At least one lowercase letter
+                      </li>
+                      <li className={`flex items-center gap-1 ${!password.length || /[^A-Za-z0-9]/.test(password) ? 'text-green-500' : 'text-red-500'}`}>
+                        {!password.length || /[^A-Za-z0-9]/.test(password) ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                        At least one symbol
+                      </li>
+                    </ul>
                   </div>
                 </div>
               )}

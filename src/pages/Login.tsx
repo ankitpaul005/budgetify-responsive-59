@@ -32,6 +32,16 @@ const LoginPage = () => {
       setIsLoading(true);
       console.log("Login attempt with:", values.email);
       
+      // Add validation for email format
+      if (!values.email.includes('@') || !values.email.includes('.')) {
+        toast.error("Invalid email format", {
+          description: "Please enter a valid email address",
+          icon: <AlertTriangle className="h-5 w-5 text-red-500" />
+        });
+        setIsLoading(false);
+        return;
+      }
+      
       await login(values.email, values.password);
       
       toast.success("Login successful", {
@@ -43,12 +53,14 @@ const LoginPage = () => {
     } catch (error: any) {
       console.error("Login error:", error);
       
-      // Handle error cases
+      // Handle error cases with more specific feedback
       let errorMessage = "Please check your credentials and try again";
       if (error.message?.includes("rate limited")) {
         errorMessage = "Too many login attempts. Please try again later.";
-      } else if (error.message?.includes("credentials")) {
-        errorMessage = "Invalid email or password";
+      } else if (error.message?.includes("Invalid login credentials")) {
+        errorMessage = "Invalid email or password. Please check and try again.";
+      } else if (error.message?.includes("Email not confirmed")) {
+        errorMessage = "Please verify your email before logging in.";
       }
       
       toast.error("Login failed", {
