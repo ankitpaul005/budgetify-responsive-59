@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -40,10 +41,23 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isResetting, setIsResetting] = useState(false);
   
+  // Update state when userProfile changes
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate("/login");
+    if (userProfile) {
+      setNewIncome(userProfile.total_income?.toString() || "");
+      setPhoneNumber(userProfile.phone_number || "");
     }
+  }, [userProfile]);
+  
+  useEffect(() => {
+    // Delay redirect to allow auth to initialize
+    const timer = setTimeout(() => {
+      if (!isLoading && !isAuthenticated) {
+        navigate("/login");
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
   }, [isAuthenticated, isLoading, navigate]);
   
   useEffect(() => {
@@ -51,18 +65,10 @@ const Dashboard = () => {
     
     if (user) {
       fetchTransactions();
+    } else {
+      setIsLoading(false);
     }
   }, [user]);
-  
-  useEffect(() => {
-    console.log("Dashboard: User profile updated:", userProfile);
-    if (userProfile?.total_income) {
-      setNewIncome(userProfile.total_income.toString());
-    }
-    if (userProfile?.phone_number) {
-      setPhoneNumber(userProfile.phone_number);
-    }
-  }, [userProfile]);
   
   const fetchTransactions = async () => {
     if (!user) return;
@@ -191,7 +197,7 @@ const Dashboard = () => {
     "#14B8A6",
   ];
 
-  if (isLoading && !userProfile) {
+  if (isLoading) {
     return (
       <Layout>
         <div className="max-w-7xl mx-auto p-4 flex justify-center items-center h-[80vh]">
@@ -205,7 +211,7 @@ const Dashboard = () => {
   }
 
   const summary = calculateSummary(transactions, userProfile?.total_income || 0);
-  console.log("Dashboard rendering with summary:", summary, "and userProfile:", userProfile);
+  const displayName = userProfile?.name || user?.email?.split('@')[0] || "User";
 
   return (
     <Layout>
@@ -220,7 +226,7 @@ const Dashboard = () => {
         <div className="relative z-10">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h1 className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-budget-blue to-budget-green">
-              Welcome back, {userProfile?.name || user?.email || "User"}
+              Welcome back, {displayName}
             </h1>
             
             <div className="flex gap-2 w-full sm:w-auto">

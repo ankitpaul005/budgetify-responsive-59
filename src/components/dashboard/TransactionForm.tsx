@@ -14,7 +14,12 @@ import GlassmorphicCard from "@/components/ui/GlassmorphicCard";
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { PlusCircle, CreditCard, Calendar, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 
-const TransactionForm = ({ userId, onAddTransaction }) => {
+interface TransactionFormProps {
+  userId?: string; // Make userId optional
+  onAddTransaction: (transaction: any) => void;
+}
+
+const TransactionForm: React.FC<TransactionFormProps> = ({ userId, onAddTransaction }) => {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
@@ -22,8 +27,16 @@ const TransactionForm = ({ userId, onAddTransaction }) => {
   const [date, setDate] = useState(new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!userId) {
+      toast.error("Authentication required", {
+        description: "Please login to add transactions"
+      });
+      return;
+    }
+    
     if (!description || !amount || !category) {
       toast.error("Please fill all required fields");
       return;
@@ -179,10 +192,16 @@ const TransactionForm = ({ userId, onAddTransaction }) => {
           <Button 
             type="submit" 
             className="w-full mt-2 bg-gradient-to-r from-budget-blue to-budget-green text-white"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !userId}
           >
             {isSubmitting ? "Adding..." : "Add Transaction"}
           </Button>
+          
+          {!userId && (
+            <p className="text-sm text-center text-muted-foreground">
+              You need to be logged in to add transactions
+            </p>
+          )}
         </form>
       </CardContent>
     </GlassmorphicCard>
