@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import AccessibilityTools from "@/components/accessibility/AccessibilityTools";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -107,7 +108,14 @@ const LoginForm: React.FC<LoginFormProps> = ({
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <div className="flex justify-between items-center">
+                      <FormLabel>Email</FormLabel>
+                      <AccessibilityTools 
+                        text="Enter your email address" 
+                        showKeyboard={true}
+                        targetInputId="email-input"
+                      />
+                    </div>
                     <div className="relative rounded-md shadow-sm">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <User className="h-5 w-5 text-gray-400" />
@@ -119,6 +127,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                           className="pl-10"
                           type="email"
                           autoComplete="email"
+                          id="email-input"
                         />
                       </FormControl>
                     </div>
@@ -134,7 +143,14 @@ const LoginForm: React.FC<LoginFormProps> = ({
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <div className="flex justify-between items-center">
+                      <FormLabel>Password</FormLabel>
+                      <AccessibilityTools 
+                        text="Enter your password" 
+                        showKeyboard={true}
+                        targetInputId="password-input"
+                      />
+                    </div>
                     <div className="relative rounded-md shadow-sm">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Lock className="h-5 w-5 text-gray-400" />
@@ -146,6 +162,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                           autoComplete="current-password"
                           className="pl-10"
                           placeholder="••••••••"
+                          id="password-input"
                         />
                       </FormControl>
                     </div>

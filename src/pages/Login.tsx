@@ -1,15 +1,26 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import LoginForm from "@/components/auth/LoginForm";
 import AnimatedBackground from "@/components/auth/AnimatedBackground";
 import PageGuide from "@/components/accessibility/PageGuide";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { Loader } from "lucide-react";
 
 const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const { login, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
 
   const loginGuideSteps = [
     {
@@ -31,16 +42,19 @@ const LoginPage: React.FC = () => {
   ];
 
   const handleLogin = async (values: { email: string; password: string }) => {
+    if (!values.email || !values.password) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
     try {
       setIsLoading(true);
-      // Simulate login - in a real app, this would call your auth service
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log("Login attempt with:", values);
-      toast.success("Successfully logged in!");
-      // Here you would normally navigate to dashboard or home page after successful login
-    } catch (error) {
+      await login(values.email, values.password);
+      // No need to show success message here as the auth context will do that
+      // The useEffect will handle redirection
+    } catch (error: any) {
       console.error("Login error:", error);
-      toast.error("Login failed. Please check your credentials and try again.");
+      // Auth context already shows error toast, no need to show it again
     } finally {
       setIsLoading(false);
     }
@@ -92,6 +106,16 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Loading overlay for page-level loading state */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-background p-6 rounded-lg shadow-lg flex items-center gap-3">
+            <Loader className="h-5 w-5 animate-spin" />
+            <p>Signing in...</p>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
