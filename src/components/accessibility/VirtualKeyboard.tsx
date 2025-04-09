@@ -124,7 +124,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
       if (input && input.form) {
         // If input is part of a form, submit the form
         const form = input.form;
-        const submitButton = form.querySelector('button[type="submit"]');
+        const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
         if (submitButton) {
           submitButton.click();
         }
