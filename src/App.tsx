@@ -21,6 +21,8 @@ import PrivacyPolicyPage from "./pages/PrivacyPolicy";
 import TermsOfServicePage from "./pages/TermsOfService";
 import AboutPage from "./pages/About";
 import ContactPage from "./pages/Contact";
+import NewsPage from "./pages/News";
+import CompanionsPage from "./pages/Companions";
 import ChatbotDialog from "./components/chat/ChatbotDialog";
 import VoiceCommandListener from "./components/voice/VoiceCommandListener";
 import SignupPrompt from "./components/auth/SignupPrompt";
@@ -44,7 +46,10 @@ function App() {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignUpPage />} />
-              {/* New routes for footer pages */}
+              {/* New routes */}
+              <Route path="/news" element={<NewsPage />} />
+              <Route path="/companions" element={<CompanionsPage />} />
+              {/* Footer pages */}
               <Route path="/privacy" element={<PrivacyPolicyPage />} />
               <Route path="/terms" element={<TermsOfServicePage />} />
               <Route path="/about" element={<AboutPage />} />
