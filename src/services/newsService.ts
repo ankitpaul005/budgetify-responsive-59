@@ -49,7 +49,7 @@ export const fetchNews = async (category: string = 'markets', limit: number = 10
       'Major index reaches record closing high',
       'Financial sector gains on regulatory changes',
       'Consumer sentiment improves in latest survey',
-      'Corporate earnings exceed analysts' expectations',
+      'Corporate earnings exceed analysts\' expectations', // Added escape character
     ];
     
     const currentDate = new Date();
