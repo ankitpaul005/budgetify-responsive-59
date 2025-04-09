@@ -1,74 +1,69 @@
 
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
-import { Check, AlertTriangle, Loader } from "lucide-react";
+import React from "react";
+import Layout from "@/components/Layout";
 import LoginForm from "@/components/auth/LoginForm";
 import AnimatedBackground from "@/components/auth/AnimatedBackground";
-import { z } from "zod";
+import PageGuide from "@/components/accessibility/PageGuide";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
-const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
-
-const LoginPage = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const { login, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/dashboard");
+const LoginPage: React.FC = () => {
+  const loginGuideSteps = [
+    {
+      title: "Enter Credentials",
+      description: "Fill in your email address and password in the login form.",
+    },
+    {
+      title: "Use Accessibility Tools",
+      description: "If you need assistance, use the keyboard icon to access the virtual keyboard or the speaker icon to have instructions read aloud.",
+    },
+    {
+      title: "Submit Form",
+      description: "Click the 'Sign In' button to log in to your account.",
+    },
+    {
+      title: "Need an Account?",
+      description: "If you don't have an account, click the 'Create an account' link below the login form.",
     }
-  }, [isAuthenticated, navigate]);
-  
-  const handleSubmit = async (values: LoginFormValues) => {
-    try {
-      setIsLoading(true);
-      console.log("Login attempt with:", values.email);
-      
-      await login(values.email, values.password);
-      
-      toast.success("Login successful", {
-        description: "Welcome back to Budgetify!",
-        icon: <Check className="h-5 w-5 text-green-500" />
-      });
-      
-      navigate("/dashboard");
-    } catch (error: any) {
-      console.error("Login error:", error);
-      
-      // Handle error cases with more specific feedback
-      let errorMessage = "Please check your credentials and try again";
-      if (error.message?.includes("rate limited")) {
-        errorMessage = "Too many login attempts. Please try again later.";
-      } else if (error.message?.includes("Invalid login credentials")) {
-        errorMessage = "Invalid email or password. Please check and try again.";
-      } else if (error.message?.includes("Email not confirmed")) {
-        errorMessage = "Please verify your email before logging in.";
-      }
-      
-      toast.error("Login failed", {
-        description: errorMessage,
-        icon: <AlertTriangle className="h-5 w-5 text-red-500" />
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  ];
 
   return (
-    <AnimatedBackground>
-      <LoginForm
-        onSubmit={handleSubmit}
-        isLoading={isLoading}
-      />
-    </AnimatedBackground>
+    <Layout withPadding={false}>
+      <div className="flex min-h-[calc(100vh-64px)]">
+        <div className="flex-1 hidden md:block relative overflow-hidden">
+          <AnimatedBackground />
+        </div>
+        <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-8">
+          <div className="w-full max-w-md">
+            <div className="mb-8 text-center">
+              <h1 className="text-3xl font-bold tracking-tight mb-2">
+                Welcome back
+              </h1>
+              <p className="text-muted-foreground">
+                Enter your credentials to access your account
+              </p>
+              <div className="mt-2 flex justify-center">
+                <PageGuide 
+                  title="Login Page Guide" 
+                  steps={loginGuideSteps} 
+                />
+              </div>
+            </div>
+            
+            <LoginForm />
+            
+            <div className="mt-8 text-center text-sm">
+              <p className="text-muted-foreground">
+                Don't have an account?{" "}
+                <Button variant="link" className="p-0" asChild>
+                  <Link to="/signup">Create an account</Link>
+                </Button>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
   );
 };
 
