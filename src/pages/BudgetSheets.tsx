@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -83,7 +82,6 @@ import {
   BudgetAccessLevel
 } from "@/services/budgetDiaryService";
 
-// Define types for our budget sheets and entries
 interface BudgetSheetType {
   id: string;
   name: string;
@@ -123,7 +121,6 @@ const BudgetSheetsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   
-  // Access control states
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [accessLevel, setAccessLevel] = useState<BudgetAccessLevel>("viewer");
@@ -174,7 +171,6 @@ const BudgetSheetsPage = () => {
       if (sheetError) throw sheetError;
       
       if (sheetData.length === 0) {
-        // Create a default sheet if none exists
         const { data: newSheet, error: newSheetError } = await supabase
           .from('budget_sheets')
           .insert({
@@ -193,7 +189,6 @@ const BudgetSheetsPage = () => {
         setSheets(sheetData);
         setActiveSheet(sheetData[0].id);
         
-        // Fetch entries for all sheets
         for (const sheet of sheetData) {
           await fetchEntriesForSheet(sheet.id);
         }
@@ -216,7 +211,6 @@ const BudgetSheetsPage = () => {
       
       if (entriesError) throw entriesError;
       
-      // Cast the entries to the correct type
       const typedEntries: BudgetEntryType[] = entriesData.map(entry => ({
         ...entry,
         type: entry.type as 'income' | 'expense'
@@ -297,13 +291,11 @@ const BudgetSheetsPage = () => {
     if (!user) return;
     
     try {
-      // Check if this is the last sheet
       if (sheets.length === 1) {
         toast.error("Cannot delete the only budget diary");
         return;
       }
       
-      // Delete all entries for this sheet first
       const { error: entriesError } = await supabase
         .from('budget_entries')
         .delete()
@@ -311,7 +303,6 @@ const BudgetSheetsPage = () => {
       
       if (entriesError) throw entriesError;
       
-      // Delete all members for this sheet
       try {
         const { error: membersError } = await supabase
           .from('budget_diary_members')
@@ -323,7 +314,6 @@ const BudgetSheetsPage = () => {
         console.error("Error with members deletion:", error);
       }
       
-      // Then delete the sheet
       const { error: sheetError } = await supabase
         .from('budget_sheets')
         .delete()
@@ -332,11 +322,9 @@ const BudgetSheetsPage = () => {
       
       if (sheetError) throw sheetError;
       
-      // Update local state
       const updatedSheets = sheets.filter(sheet => sheet.id !== sheetId);
       setSheets(updatedSheets);
       
-      // If the active sheet was deleted, set a new active sheet
       if (activeSheet === sheetId) {
         setActiveSheet(updatedSheets[0]?.id || null);
       }
@@ -355,7 +343,6 @@ const BudgetSheetsPage = () => {
       const success = await addBudgetDiaryMember(activeSheet, inviteEmail, accessLevel);
       
       if (success) {
-        // Refresh member list
         await fetchSheetMembers(activeSheet);
         setInviteEmail("");
         setAccessLevel("viewer");
@@ -374,7 +361,6 @@ const BudgetSheetsPage = () => {
       const success = await removeBudgetDiaryMember(activeSheet, memberId);
       
       if (success) {
-        // Update local state
         setSheetMembers(prev => prev.filter(member => member.user_id !== memberId));
         toast.success("Member removed from budget diary");
         logActivity(user.id, ActivityTypes.BUDGET, "Removed member from budget diary");
@@ -399,8 +385,6 @@ const BudgetSheetsPage = () => {
         return;
       }
       
-      // In a real application, you would use a library like xlsx to create a proper Excel file
-      // For this demo, we'll create a CSV and convert it to a Blob
       const headers = ["Date", "Type", "Category", "Amount", "Description"];
       const rows = sheetEntries.map(entry => [
         new Date(entry.date).toLocaleDateString(),
@@ -448,8 +432,6 @@ const BudgetSheetsPage = () => {
         return;
       }
       
-      // In a real application, you would use a library like jsPDF to create a proper PDF
-      // For this demo, we'll just show a toast
       setTimeout(() => {
         toast.success(`Budget exported to PDF: ${sheet.name}.pdf`);
         logActivity(user.id, ActivityTypes.EXPORT, `Exported budget diary: ${sheet.name} as PDF`);
@@ -509,7 +491,6 @@ const BudgetSheetsPage = () => {
     return `Currently viewing ${activeSheetObj.name}. This diary has a total income of ${formatCurrency(summary.income)}, expenses of ${formatCurrency(summary.expenses)}, and a balance of ${formatCurrency(summary.balance)}.`;
   };
   
-  // Determine if the current user is the owner of the active sheet
   const isOwner = user && activeSheet && sheets.find(s => s.id === activeSheet)?.user_id === user.id;
   
   if (!isAuthenticated) {
@@ -706,17 +687,16 @@ const BudgetSheetsPage = () => {
                               </div>
                             ) : (
                               <div className="space-y-3 max-h-[200px] overflow-y-auto">
-                                {/* Show owner first */}
                                 {user && (
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                       <Avatar className="h-8 w-8">
                                         <AvatarFallback>
-                                          {user.name?.[0] || user.email?.[0]?.toUpperCase() || 'U'}
+                                          {user?.email?.[0]?.toUpperCase() || 'U'}
                                         </AvatarFallback>
                                       </Avatar>
                                       <div>
-                                        <p className="text-sm font-medium">{user.name || user.email}</p>
+                                        <p className="text-sm font-medium">{user?.email}</p>
                                         <p className="text-xs text-muted-foreground">You (Owner)</p>
                                       </div>
                                     </div>
@@ -729,7 +709,6 @@ const BudgetSheetsPage = () => {
                                   </div>
                                 )}
                                 
-                                {/* Then show members */}
                                 {sheetMembers.map(member => (
                                   <div key={member.id} className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -862,7 +841,7 @@ const BudgetSheetsPage = () => {
                     <div className="flex -space-x-2 mr-2">
                       {sheetMembers.slice(0, 3).map(member => (
                         <Avatar key={member.id} className="h-7 w-7 border-2 border-background">
-                          <AvatarFallback className="text-xs">
+                          <AvatarFallback>
                             {member.user_name?.[0] || member.user_email?.[0]?.toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
@@ -891,7 +870,6 @@ const BudgetSheetsPage = () => {
           </Tabs>
         )}
         
-        {/* Rename Sheet Dialog */}
         <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
           <DialogContent>
             <DialogHeader>

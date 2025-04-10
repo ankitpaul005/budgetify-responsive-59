@@ -59,7 +59,7 @@ export const createSplitExpense = async (
       split_expense_id: expense.id,
       user_id: share.userId,
       amount: share.amount,
-      status: share.userId === userId ? 'paid' : 'pending'
+      status: share.userId === userId ? 'paid' as const : 'pending' as const
     }));
 
     const { data: createdShares, error: sharesError } = await supabase
@@ -159,7 +159,7 @@ export const fetchUserSplitExpenses = async (userId: string): Promise<SplitExpen
       console.error("Error fetching user details:", usersError);
     }
 
-    // Map shares to each expense
+    // Map shares to each expense with the correct status type
     return expenses.map(expense => {
       const expenseShares = allShares
         .filter(share => share.split_expense_id === expense.id)
@@ -167,15 +167,16 @@ export const fetchUserSplitExpenses = async (userId: string): Promise<SplitExpen
           const user = users?.find(u => u.id === share.user_id);
           return {
             ...share,
+            status: share.status as 'pending' | 'paid' | 'declined',
             user_name: user?.name || 'Unknown User',
             user_email: user?.email || ''
-          };
+          } as SplitExpenseShare;
         });
 
       return {
         ...expense,
         shares: expenseShares
-      };
+      } as SplitExpense;
     });
   } catch (error) {
     console.error("Error fetching split expenses:", error);

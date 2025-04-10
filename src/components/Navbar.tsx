@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -6,6 +7,8 @@ import ProfileMenu from "./navbar/ProfileMenu";
 import MobileMenuToggle from "./navbar/MobileMenuToggle";
 import DesktopNavLinks from "./navbar/DesktopNavLinks";
 import NotificationManager from "./notifications/NotificationManager";
+import { Home, BarChart3, TrendingUp, BookOpen, Users, Activity, Newspaper, Split } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export type NavLink = {
   label: string;
