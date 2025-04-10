@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -49,9 +50,6 @@ export const renameBudgetToBudgetDiary = async (
   }
 };
 
-// Mock implementation for budget diary members since the table doesn't exist yet
-// This will temporarily fix the TypeScript errors but won't actually work until 
-// the budget_diary_members table is created
 export const addBudgetDiaryMember = async (
   budgetId: string,
   email: string,
@@ -72,7 +70,40 @@ export const addBudgetDiaryMember = async (
       return false;
     }
 
-    // Simulated implementation until budget_diary_members table exists
+    // Check if the user is already a member
+    const { data: existingMember, error: memberCheckError } = await supabase
+      .from('budget_diary_members')
+      .select('id')
+      .eq('budget_id', budgetId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (memberCheckError) throw memberCheckError;
+
+    if (existingMember) {
+      // Update existing member's access level
+      const { error: updateError } = await supabase
+        .from('budget_diary_members')
+        .update({ access_level: accessLevel })
+        .eq('id', existingMember.id);
+
+      if (updateError) throw updateError;
+      
+      toast.success(`Updated access level for ${email}`);
+      return true;
+    }
+
+    // Add new member
+    const { error: insertError } = await supabase
+      .from('budget_diary_members')
+      .insert({
+        budget_id: budgetId,
+        user_id: user.id,
+        access_level: accessLevel
+      });
+
+    if (insertError) throw insertError;
+
     toast.success(`Added ${email} to budget diary`);
     return true;
   } catch (error) {
@@ -87,7 +118,14 @@ export const removeBudgetDiaryMember = async (
   userId: string
 ): Promise<boolean> => {
   try {
-    // Simulated implementation until budget_diary_members table exists
+    const { error } = await supabase
+      .from('budget_diary_members')
+      .delete()
+      .eq('budget_id', budgetId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    
     toast.success("Member removed from budget diary");
     return true;
   } catch (error) {
@@ -99,8 +137,40 @@ export const removeBudgetDiaryMember = async (
 
 export const getBudgetDiaryMembers = async (budgetId: string): Promise<BudgetDiaryMember[]> => {
   try {
-    // Simulated implementation until budget_diary_members table exists
-    return [];
+    const { data, error } = await supabase
+      .from('budget_diary_members')
+      .select('*')
+      .eq('budget_id', budgetId);
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Get user details for each member
+    const membersWithDetails = await Promise.all(
+      data.map(async (member) => {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('name, email')
+          .eq('id', member.user_id)
+          .single();
+
+        if (userError) {
+          console.error("Error fetching user details:", userError);
+          return member;
+        }
+
+        return {
+          ...member,
+          user_name: userData.name,
+          user_email: userData.email
+        };
+      })
+    );
+
+    return membersWithDetails as BudgetDiaryMember[];
   } catch (error) {
     console.error("Error fetching budget diary members:", error);
     return [];
@@ -125,7 +195,20 @@ export const checkBudgetDiaryAccess = async (
       return 'owner';
     }
 
-    // Simulated implementation until budget_diary_members table exists
+    // Check if the user is a member
+    const { data: membership, error: membershipError } = await supabase
+      .from('budget_diary_members')
+      .select('access_level')
+      .eq('budget_id', budgetId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (membershipError) throw membershipError;
+
+    if (membership) {
+      return membership.access_level as BudgetAccessLevel;
+    }
+
     return null;
   } catch (error) {
     console.error("Error checking budget diary access:", error);

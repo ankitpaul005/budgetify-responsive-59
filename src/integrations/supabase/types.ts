@@ -41,6 +41,38 @@ export type Database = {
           },
         ]
       }
+      budget_diary_members: {
+        Row: {
+          access_level: string
+          budget_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          access_level: string
+          budget_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          access_level?: string
+          budget_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_diary_members_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budget_sheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_entries: {
         Row: {
           amount: number
