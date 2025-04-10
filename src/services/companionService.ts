@@ -48,7 +48,7 @@ export const fetchCompanionGroups = async (userId: string): Promise<CompanionGro
     // Fetch members for each group
     for (const group of groupsWithMembers) {
       try {
-        // Fix the join query by using a more explicit approach
+        // Fix the join query to correctly handle the relationship
         const { data: memberships, error: memberError } = await supabase
           .from('companion_group_members')
           .select(`
@@ -56,7 +56,7 @@ export const fetchCompanionGroups = async (userId: string): Promise<CompanionGro
             user_id,
             status,
             created_at,
-            users:user_id (
+            users (
               id,
               name,
               email
@@ -71,14 +71,20 @@ export const fetchCompanionGroups = async (userId: string): Promise<CompanionGro
 
         if (memberships) {
           // Format members data and add to group
-          group.members = memberships.map(m => ({
-            id: m.user_id,
-            // Safely access the user properties with type checking
-            name: m.users?.name || 'Unknown User',
-            email: m.users?.email || '',
-            status: m.status as 'pending' | 'active' | 'declined',
-            created_at: m.created_at,
-          }));
+          group.members = memberships.map(m => {
+            // Check if m.users exists and has data - it should be an array with a single user
+            const user = Array.isArray(m.users) && m.users.length > 0 
+              ? m.users[0] 
+              : (typeof m.users === 'object' && m.users !== null ? m.users : null);
+              
+            return {
+              id: m.user_id,
+              name: user?.name || 'Unknown User',
+              email: user?.email || '',
+              status: m.status as 'pending' | 'active' | 'declined',
+              created_at: m.created_at,
+            };
+          });
         }
       } catch (error) {
         console.error(`Error processing members for group ${group.id}:`, error);
