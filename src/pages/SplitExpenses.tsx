@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/context/AuthContext";
@@ -56,7 +55,6 @@ const SplitExpenses = () => {
   const [expenses, setExpenses] = useState<SplitExpense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // New expense form state
   const [isNewExpenseDialogOpen, setIsNewExpenseDialogOpen] = useState(false);
   const [expenseTitle, setExpenseTitle] = useState("");
   const [expenseDescription, setExpenseDescription] = useState("");
@@ -65,7 +63,6 @@ const SplitExpenses = () => {
   const [expenseCurrency, setExpenseCurrency] = useState("USD");
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
   
-  // Sharing state
   const [shareWithEmail, setShareWithEmail] = useState("");
   const [sharingList, setSharingList] = useState<{email: string, amount: string}[]>([]);
   const [sharingMethod, setSharingMethod] = useState<"equal" | "custom">("equal");
@@ -82,7 +79,6 @@ const SplitExpenses = () => {
     try {
       setIsLoading(true);
       
-      // Get expenses created by the user
       const { data: createdExpenses, error: createdExpensesError } = await supabase
         .from('split_expenses')
         .select('*')
@@ -90,7 +86,6 @@ const SplitExpenses = () => {
       
       if (createdExpensesError) throw createdExpensesError;
       
-      // Get expenses shared with the user
       const { data: sharedExpensesData, error: sharedExpensesError } = await supabase
         .from('split_expense_shares')
         .select('split_expense_id')
@@ -133,7 +128,6 @@ const SplitExpenses = () => {
           continue;
         }
         
-        // Fetch user details for shares
         const enhancedShares = await Promise.all(shares.map(async (share) => {
           const { data: userData, error: userError } = await supabase
             .from('users')
@@ -143,13 +137,17 @@ const SplitExpenses = () => {
           
           if (userError) {
             console.error(`Error fetching user ${share.user_id}:`, userError);
-            return share;
+            return {
+              ...share,
+              status: share.status as SplitExpenseStatus
+            };
           }
           
           return {
             ...share,
             user_name: userData.name,
-            user_email: userData.email
+            user_email: userData.email,
+            status: share.status as SplitExpenseStatus
           };
         }));
         
@@ -184,15 +182,13 @@ const SplitExpenses = () => {
       return;
     }
     
-    // For equal split, calculate amount per person
     let amount = "";
     if (sharingMethod === "equal") {
-      const numPeople = sharingList.length + 2; // +1 for the new person and +1 for the current user
+      const numPeople = sharingList.length + 2;
       const totalAmount = parseFloat(expenseAmount || "0");
       if (!isNaN(totalAmount) && totalAmount > 0) {
         amount = (totalAmount / numPeople).toFixed(2);
         
-        // Update existing shares with new equal amounts
         setSharingList(prevList => 
           prevList.map(item => ({
             ...item,
@@ -210,9 +206,8 @@ const SplitExpenses = () => {
     const newList = sharingList.filter(item => item.email !== email);
     setSharingList(newList);
     
-    // Recalculate equal split if needed
     if (sharingMethod === "equal" && newList.length > 0) {
-      const numPeople = newList.length + 1; // +1 for the current user
+      const numPeople = newList.length + 1;
       const totalAmount = parseFloat(expenseAmount || "0");
       if (!isNaN(totalAmount) && totalAmount > 0) {
         const newAmount = (totalAmount / numPeople).toFixed(2);
@@ -226,7 +221,7 @@ const SplitExpenses = () => {
   
   const updateSharingAmounts = () => {
     if (sharingMethod === "equal" && sharingList.length > 0) {
-      const numPeople = sharingList.length + 1; // +1 for the current user
+      const numPeople = sharingList.length + 1;
       const totalAmount = parseFloat(expenseAmount || "0");
       if (!isNaN(totalAmount) && totalAmount > 0) {
         const newAmount = (totalAmount / numPeople).toFixed(2);
@@ -263,7 +258,6 @@ const SplitExpenses = () => {
       return;
     }
     
-    // Validate custom split amounts
     if (sharingMethod === "custom") {
       const missingAmount = sharingList.some(item => !item.amount.trim());
       if (missingAmount) {
@@ -281,7 +275,6 @@ const SplitExpenses = () => {
     }
     
     try {
-      // 1. Create the expense
       const { data: newExpense, error: expenseError } = await supabase
         .from('split_expenses')
         .insert({
@@ -298,23 +291,20 @@ const SplitExpenses = () => {
       
       if (expenseError) throw expenseError;
       
-      // 2. Calculate shares
       const shares = [];
       let remainingAmount = totalAmount;
       
-      // Add shares for others
       for (const share of sharingList) {
         let shareAmount: number;
         
         if (sharingMethod === "equal") {
-          shareAmount = totalAmount / (sharingList.length + 1); // +1 for the current user
+          shareAmount = totalAmount / (sharingList.length + 1);
         } else {
           shareAmount = parseFloat(share.amount || "0");
         }
         
         remainingAmount -= shareAmount;
         
-        // Find user by email
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select('id')
@@ -324,8 +314,6 @@ const SplitExpenses = () => {
         if (userError) throw userError;
         
         if (!userData) {
-          // Handle case where user doesn't exist
-          // For now, we'll just log it and continue
           console.warn(`User with email ${share.email} not found`);
           continue;
         }
@@ -338,7 +326,6 @@ const SplitExpenses = () => {
         });
       }
       
-      // 3. Insert shares
       if (shares.length > 0) {
         const { error: sharesError } = await supabase
           .from('split_expense_shares')
@@ -393,7 +380,6 @@ const SplitExpenses = () => {
   
   const handleDeleteExpense = async (expenseId: string) => {
     try {
-      // First delete shares
       const { error: sharesError } = await supabase
         .from('split_expense_shares')
         .delete()
@@ -401,7 +387,6 @@ const SplitExpenses = () => {
       
       if (sharesError) throw sharesError;
       
-      // Then delete the expense
       const { error: expenseError } = await supabase
         .from('split_expenses')
         .delete()
@@ -446,7 +431,6 @@ const SplitExpenses = () => {
     if (!user) return null;
     
     if (expense.creator_id === user.id) {
-      // Calculate creator share
       const othersTotal = expense.shares.reduce((sum, share) => sum + share.amount, 0);
       return {
         amount: expense.total_amount - othersTotal,
@@ -454,7 +438,6 @@ const SplitExpenses = () => {
         status: "paid" as SplitExpenseStatus
       };
     } else {
-      // Find user's share
       const userShare = expense.shares.find(share => share.user_id === user.id);
       if (userShare) {
         return {
@@ -945,7 +928,7 @@ const SplitExpenses = () => {
                         </div>
                         
                         <div className="mt-4">
-                          <Badge variant="success" className="bg-green-500 hover:bg-green-600 text-white">Paid</Badge>
+                          <Badge className="bg-green-500 hover:bg-green-600 text-white">Paid</Badge>
                         </div>
                       </CardContent>
                     </Card>
