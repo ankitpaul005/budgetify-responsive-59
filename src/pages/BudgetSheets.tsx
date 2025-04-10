@@ -76,15 +76,12 @@ interface BudgetEntryType {
   date: string;
   description: string | null;
   created_at: string;
+  updated_at?: string;
+  user_id?: string;
 }
 
-// Add EXPORT to ActivityTypes if it doesn't exist
-// We'll extend the ActivityTypes enum in the activityService
-declare module "@/services/activityService" {
-  export const enum ActivityTypes {
-    EXPORT = "EXPORT"
-  }
-}
+// No need to add EXPORT to ActivityTypes here since it's already defined in the activityService.ts file
+// We'll just use it from there
 
 const BudgetSheetsPage = () => {
   const { isAuthenticated, user } = useAuth();
@@ -169,9 +166,15 @@ const BudgetSheetsPage = () => {
       
       if (entriesError) throw entriesError;
       
+      // Cast the entries to the correct type
+      const typedEntries: BudgetEntryType[] = entriesData.map(entry => ({
+        ...entry,
+        type: entry.type as 'income' | 'expense'
+      }));
+      
       setEntries(prev => ({
         ...prev,
-        [sheetId]: entriesData
+        [sheetId]: typedEntries
       }));
     } catch (error) {
       console.error(`Error fetching entries for sheet ${sheetId}:`, error);

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 // Activity types enum
@@ -9,7 +10,8 @@ export enum ActivityTypes {
   INVESTMENT = "INVESTMENT",
   PROFILE = "PROFILE",
   NEWS = "NEWS",
-  EXPORT = "EXPORT" // Added EXPORT type
+  EXPORT = "EXPORT", // Ensure EXPORT is defined
+  PROFILE_UPDATE = "PROFILE_UPDATE" // Add PROFILE_UPDATE type
 }
 
 // Activity item interface

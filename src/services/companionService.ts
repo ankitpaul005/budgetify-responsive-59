@@ -50,7 +50,7 @@ export const fetchCompanionGroups = async (userId: string): Promise<CompanionGro
       try {
         const { data: memberships, error: memberError } = await supabase
           .from('companion_group_members')
-          .select('*, users:user_id(id, name, email)');
+          .select('*, user:user_id(id, name, email)');
 
         if (memberError) {
           console.error("Error fetching group members:", memberError);
@@ -61,8 +61,8 @@ export const fetchCompanionGroups = async (userId: string): Promise<CompanionGro
           // Format members data and add to group
           group.members = memberships.map(m => ({
             id: m.user_id,
-            name: m.users?.name || 'Unknown User',
-            email: m.users?.email || '',
+            name: m.user?.name || 'Unknown User',
+            email: m.user?.email || '',
             status: m.status as 'pending' | 'active' | 'declined',
             created_at: m.created_at,
           }));

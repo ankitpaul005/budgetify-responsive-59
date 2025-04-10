@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,6 +79,8 @@ interface BudgetEntry {
   date: string;
   description: string | null;
   created_at: string;
+  updated_at?: string;
+  user_id?: string;
 }
 
 interface BudgetSheetProps {
@@ -164,7 +165,12 @@ const BudgetSheet: React.FC<BudgetSheetProps> = ({
       
       if (error) throw error;
       
-      onEntriesUpdated([data, ...entries]);
+      const typedData: BudgetEntry = {
+        ...data,
+        type: data.type as 'income' | 'expense'
+      };
+      
+      onEntriesUpdated([typedData, ...entries]);
       
       setDescription("");
       setAmount("");
@@ -269,17 +275,14 @@ const BudgetSheet: React.FC<BudgetSheetProps> = ({
   
   const getFilteredEntries = () => {
     return entries.filter(entry => {
-      // Filter by type
       if (filterType !== 'all' && entry.type !== filterType) {
         return false;
       }
       
-      // Filter by category
       if (filterCategory !== 'all' && entry.category !== filterCategory) {
         return false;
       }
       
-      // Filter by search term
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
         return (
@@ -325,7 +328,6 @@ const BudgetSheet: React.FC<BudgetSheetProps> = ({
   
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800/30">
           <CardHeader className="pb-2">
@@ -389,7 +391,6 @@ const BudgetSheet: React.FC<BudgetSheetProps> = ({
         </Card>
       </div>
       
-      {/* Add Entry Form */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-xl">Add New Entry</CardTitle>
@@ -502,7 +503,6 @@ const BudgetSheet: React.FC<BudgetSheetProps> = ({
         </CardContent>
       </Card>
       
-      {/* Filters and Entries Table */}
       <Card>
         <CardHeader className="pb-2">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -670,7 +670,6 @@ const BudgetSheet: React.FC<BudgetSheetProps> = ({
         </CardContent>
       </Card>
       
-      {/* Edit Entry Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -786,7 +785,6 @@ const BudgetSheet: React.FC<BudgetSheetProps> = ({
         </DialogContent>
       </Dialog>
       
-      {/* Delete Entry Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

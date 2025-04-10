@@ -156,8 +156,7 @@ const NewsPage: React.FC = () => {
                       <div className="flex gap-2">
                         <TextToSpeech 
                           text={getNewsDescription(item)} 
-                          buttonLabel="Listen" 
-                          iconOnly
+                          buttonLabel="Listen"
                         />
                       </div>
                       <Button asChild variant="ghost" className="gap-1">
