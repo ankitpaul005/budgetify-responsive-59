@@ -72,11 +72,10 @@ export const addBudgetDiaryMember = async (
     }
 
     // Check if the user is already a member
-    // Using any to bypass excessive type instantiation
     const budgetDiaryMembersTable = getTable('budget_diary_members');
     
-    // Using type assertion to bypass type checking
-    const { data: existingMemberData, error: memberCheckError } = await budgetDiaryMembersTable
+    // Using maybeSingle to get either a record or null
+    const { data, error: memberCheckError } = await budgetDiaryMembersTable
       .select('id')
       .eq('budget_id', budgetId)
       .eq('user_id', user.id)
@@ -84,14 +83,12 @@ export const addBudgetDiaryMember = async (
 
     if (memberCheckError) throw memberCheckError;
 
-    // TypeScript can't infer the correct type, so we need to check if data exists manually
-    const existingMember = existingMemberData as { id: string } | null;
-
-    if (existingMember) {
+    // Safely check if we got a record back with an id
+    if (data && 'id' in data) {
       // Update existing member's access level
       const { error: updateError } = await budgetDiaryMembersTable
         .update({ access_level: accessLevel })
-        .eq('id', existingMember.id);
+        .eq('id', data.id);
 
       if (updateError) throw updateError;
       
@@ -215,9 +212,8 @@ export const checkBudgetDiaryAccess = async (
 
     if (membershipError) throw membershipError;
 
-    if (membership) {
-      // Need to use type assertion since we're bypassing type checking
-      return (membership as any).access_level as BudgetAccessLevel;
+    if (membership && 'access_level' in membership) {
+      return membership.access_level as BudgetAccessLevel;
     }
 
     return null;
