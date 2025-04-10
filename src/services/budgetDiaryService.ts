@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { getTable } from "@/integrations/supabase/client-helpers";
 import { toast } from "sonner";
 
 export type BudgetAccessLevel = 'owner' | 'editor' | 'viewer';
@@ -24,12 +25,6 @@ export interface BudgetDiary {
   updated_at: string;
   members: BudgetDiaryMember[];
 }
-
-// Workaround for type issues - using a function that bypasses type checking
-const getSupabaseTable = (tableName: string) => {
-  // @ts-ignore - We need to bypass TypeScript's type checking here
-  return supabase.from(tableName);
-};
 
 export const renameBudgetToBudgetDiary = async (
   budgetId: string,
@@ -77,7 +72,9 @@ export const addBudgetDiaryMember = async (
     }
 
     // Check if the user is already a member
-    const { data: existingMember, error: memberCheckError } = await getSupabaseTable('budget_diary_members')
+    const budgetDiaryMembersTable = getTable('budget_diary_members');
+    
+    const { data: existingMember, error: memberCheckError } = await budgetDiaryMembersTable
       .select('id')
       .eq('budget_id', budgetId)
       .eq('user_id', user.id)
@@ -87,7 +84,7 @@ export const addBudgetDiaryMember = async (
 
     if (existingMember) {
       // Update existing member's access level
-      const { error: updateError } = await getSupabaseTable('budget_diary_members')
+      const { error: updateError } = await budgetDiaryMembersTable
         .update({ access_level: accessLevel })
         .eq('id', existingMember.id);
 
@@ -98,7 +95,7 @@ export const addBudgetDiaryMember = async (
     }
 
     // Add new member
-    const { error: insertError } = await getSupabaseTable('budget_diary_members')
+    const { error: insertError } = await budgetDiaryMembersTable
       .insert({
         budget_id: budgetId,
         user_id: user.id,
@@ -121,7 +118,9 @@ export const removeBudgetDiaryMember = async (
   userId: string
 ): Promise<boolean> => {
   try {
-    const { error } = await getSupabaseTable('budget_diary_members')
+    const budgetDiaryMembersTable = getTable('budget_diary_members');
+    
+    const { error } = await budgetDiaryMembersTable
       .delete()
       .eq('budget_id', budgetId)
       .eq('user_id', userId);
@@ -139,7 +138,9 @@ export const removeBudgetDiaryMember = async (
 
 export const getBudgetDiaryMembers = async (budgetId: string): Promise<BudgetDiaryMember[]> => {
   try {
-    const { data, error } = await getSupabaseTable('budget_diary_members')
+    const budgetDiaryMembersTable = getTable('budget_diary_members');
+    
+    const { data, error } = await budgetDiaryMembersTable
       .select('*')
       .eq('budget_id', budgetId);
 
@@ -171,8 +172,8 @@ export const getBudgetDiaryMembers = async (budgetId: string): Promise<BudgetDia
       })
     );
 
-    // Type casting is needed because of our type constraints
-    return membersWithDetails as unknown as BudgetDiaryMember[];
+    // Cast to the correct type
+    return membersWithDetails as BudgetDiaryMember[];
   } catch (error) {
     console.error("Error fetching budget diary members:", error);
     return [];
@@ -193,12 +194,15 @@ export const checkBudgetDiaryAccess = async (
 
     if (budgetError) throw budgetError;
 
-    if (budget?.user_id === userId) {
+    // If user is the owner of the budget sheet
+    if (budget && budget.user_id === userId) {
       return 'owner';
     }
 
     // Check if the user is a member
-    const { data: membership, error: membershipError } = await getSupabaseTable('budget_diary_members')
+    const budgetDiaryMembersTable = getTable('budget_diary_members');
+    
+    const { data: membership, error: membershipError } = await budgetDiaryMembersTable
       .select('access_level')
       .eq('budget_id', budgetId)
       .eq('user_id', userId)

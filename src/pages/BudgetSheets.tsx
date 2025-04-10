@@ -491,6 +491,7 @@ const BudgetSheetsPage = () => {
     return `Currently viewing ${activeSheetObj.name}. This diary has a total income of ${formatCurrency(summary.income)}, expenses of ${formatCurrency(summary.expenses)}, and a balance of ${formatCurrency(summary.balance)}.`;
   };
   
+  // Properly check if the user is the owner
   const isOwner = user && activeSheet && sheets.find(s => s.id === activeSheet)?.user_id === user.id;
   
   if (!isAuthenticated) {

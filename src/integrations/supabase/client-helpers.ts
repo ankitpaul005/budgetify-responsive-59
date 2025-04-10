@@ -17,6 +17,7 @@ export const getTable = (tableName: string) => {
  */
 export const executeRawQuery = async (query: string, params?: any[]) => {
   try {
+    // @ts-ignore - Using RPC requires bypassing type checking
     const { data, error } = await supabase.rpc('execute_sql', { 
       query_text: query,
       params: params || []
