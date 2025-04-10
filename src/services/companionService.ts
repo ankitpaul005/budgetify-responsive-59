@@ -48,9 +48,21 @@ export const fetchCompanionGroups = async (userId: string): Promise<CompanionGro
     // Fetch members for each group
     for (const group of groupsWithMembers) {
       try {
+        // Fix the join query by using a more explicit approach
         const { data: memberships, error: memberError } = await supabase
           .from('companion_group_members')
-          .select('*, user:user_id(id, name, email)');
+          .select(`
+            id,
+            user_id,
+            status,
+            created_at,
+            users:user_id (
+              id,
+              name,
+              email
+            )
+          `)
+          .eq('group_id', group.id);
 
         if (memberError) {
           console.error("Error fetching group members:", memberError);
@@ -61,8 +73,9 @@ export const fetchCompanionGroups = async (userId: string): Promise<CompanionGro
           // Format members data and add to group
           group.members = memberships.map(m => ({
             id: m.user_id,
-            name: m.user?.name || 'Unknown User',
-            email: m.user?.email || '',
+            // Safely access the user properties with type checking
+            name: m.users?.name || 'Unknown User',
+            email: m.users?.email || '',
             status: m.status as 'pending' | 'active' | 'declined',
             created_at: m.created_at,
           }));
