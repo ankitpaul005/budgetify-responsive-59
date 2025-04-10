@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -7,6 +6,56 @@ import ProfileMenu from "./navbar/ProfileMenu";
 import MobileMenuToggle from "./navbar/MobileMenuToggle";
 import DesktopNavLinks from "./navbar/DesktopNavLinks";
 import NotificationManager from "./notifications/NotificationManager";
+
+export type NavLink = {
+  label: string;
+  href: string;
+  icon?: LucideIcon;
+  active?: boolean;
+};
+
+const links: NavLink[] = [
+  {
+    label: 'Dashboard',
+    href: '/dashboard',
+    icon: Home
+  },
+  {
+    label: 'Analytics',
+    href: '/analytics',
+    icon: BarChart3
+  },
+  {
+    label: 'Investment',
+    href: '/investment',
+    icon: TrendingUp
+  },
+  {
+    label: 'Budget Diary',
+    href: '/budget-diary',
+    icon: BookOpen
+  },
+  {
+    label: 'Split Expenses',
+    href: '/split-expenses',
+    icon: Split
+  },
+  {
+    label: 'Companions',
+    href: '/companions',
+    icon: Users
+  },
+  {
+    label: 'Activity',
+    href: '/activity',
+    icon: Activity
+  },
+  {
+    label: 'News',
+    href: '/news',
+    icon: Newspaper
+  }
+];
 
 const Navbar = () => {
   const location = useLocation();

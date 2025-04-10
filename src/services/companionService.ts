@@ -48,19 +48,14 @@ export const fetchCompanionGroups = async (userId: string): Promise<CompanionGro
     // Fetch members for each group
     for (const group of groupsWithMembers) {
       try {
-        // Fix the join query to correctly handle the relationship
+        // Fixed query to properly join with users table
         const { data: memberships, error: memberError } = await supabase
           .from('companion_group_members')
           .select(`
             id,
             user_id,
             status,
-            created_at,
-            users (
-              id,
-              name,
-              email
-            )
+            created_at
           `)
           .eq('group_id', group.id);
 
@@ -69,13 +64,22 @@ export const fetchCompanionGroups = async (userId: string): Promise<CompanionGro
           continue;
         }
 
-        if (memberships) {
-          // Format members data and add to group
+        if (memberships && memberships.length > 0) {
+          // Fetch user details separately to avoid join issues
+          const memberIds = memberships.map(m => m.user_id);
+          const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('id, name, email')
+            .in('id', memberIds);
+            
+          if (usersError) {
+            console.error("Error fetching user details:", usersError);
+          }
+
+          // Map users to members
           group.members = memberships.map(m => {
-            // Check if m.users exists and has data - it should be an array with a single user
-            const user = Array.isArray(m.users) && m.users.length > 0 
-              ? m.users[0] 
-              : (typeof m.users === 'object' && m.users !== null ? m.users : null);
+            // Find the corresponding user
+            const user = users?.find(u => u.id === m.user_id);
               
             return {
               id: m.user_id,
