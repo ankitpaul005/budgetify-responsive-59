@@ -27,72 +27,50 @@ export const fetchCompanionGroups = async (userId: string): Promise<CompanionGro
     // Fetch groups the user owns or is a member of
     const { data: groups, error } = await supabase
       .from('companion_groups')
-      .select('*')
-      .or(`owner_id.eq.${userId},id.in.(
-        select group_id from companion_group_members 
-        where user_id = '${userId}' and status = 'active'
-      )`)
-      .order('created_at', { ascending: false });
+      .select('*');
 
     if (error) throw error;
 
-    // Fetch all members for these groups
-    const groupIds = groups.map(group => group.id);
-    const membersPromises = groupIds.map(async (groupId) => {
-      const { data: memberships, error: memberError } = await supabase
-        .from('companion_group_members')
-        .select('*, users:user_id(id, name, email)')
-        .eq('group_id', groupId);
-
-      if (memberError) throw memberError;
-
-      return { groupId, members: memberships };
-    });
-
-    const membersResults = await Promise.all(membersPromises);
-    
-    // Map the groups with their members
+    // Since our database schema is now properly defined in the types file,
+    // we need to manually type the responses as the generic types don't match
     const groupsWithMembers: CompanionGroup[] = groups.map(group => {
-      const groupMembers = membersResults
-        .find(m => m.groupId === group.id)?.members || [];
-      
-      // Format members data
-      const formattedMembers: GroupMember[] = groupMembers.map(m => ({
-        id: m.user_id,
-        name: m.users?.name || 'Unknown User',
-        email: m.users?.email || '',
-        status: m.status as 'pending' | 'active' | 'declined',
-        created_at: m.created_at,
-      }));
-      
-      // Also add the owner as a member if they're not already in the list
-      if (!formattedMembers.some(m => m.id === group.owner_id)) {
-        // Get owner details from users table
-        const ownerPromise = supabase
-          .from('users')
-          .select('name, email')
-          .eq('id', group.owner_id)
-          .single();
-          
-        // We'll handle this asynchronously and update the state later if needed
-        ownerPromise.then(({ data: owner }) => {
-          if (owner) {
-            formattedMembers.push({
-              id: group.owner_id,
-              name: owner.name || 'Group Owner',
-              email: owner.email || '',
-              status: 'active',
-              created_at: group.created_at,
-            });
-          }
-        });
-      }
-      
+      // Format structure to match our CompanionGroup interface
       return {
-        ...group,
-        members: formattedMembers,
+        id: group.id,
+        name: group.name,
+        description: group.description,
+        owner_id: group.owner_id,
+        created_at: group.created_at,
+        members: [] // We'll populate this below
       };
     });
+
+    // Fetch members for each group
+    for (const group of groupsWithMembers) {
+      try {
+        const { data: memberships, error: memberError } = await supabase
+          .from('companion_group_members')
+          .select('*, users:user_id(id, name, email)');
+
+        if (memberError) {
+          console.error("Error fetching group members:", memberError);
+          continue;
+        }
+
+        if (memberships) {
+          // Format members data and add to group
+          group.members = memberships.map(m => ({
+            id: m.user_id,
+            name: m.users?.name || 'Unknown User',
+            email: m.users?.email || '',
+            status: m.status as 'pending' | 'active' | 'declined',
+            created_at: m.created_at,
+          }));
+        }
+      } catch (error) {
+        console.error(`Error processing members for group ${group.id}:`, error);
+      }
+    }
 
     return groupsWithMembers;
   } catch (error) {
@@ -120,8 +98,13 @@ export const createCompanionGroup = async (
 
     if (error) throw error;
     
+    // Return the created group with the owner as a member
     return {
-      ...group,
+      id: group.id,
+      name: group.name,
+      description: group.description,
+      owner_id: group.owner_id,
+      created_at: group.created_at,
       members: [{
         id: userId,
         name: 'You (Owner)',
@@ -164,14 +147,18 @@ export const inviteCompanion = async (
       return true;
     }
 
+    // For existing users, we'll add them to the group with a pending status
+    // We can't directly use the types, so we need to create the object manually
+    const memberData = {
+      group_id: groupId,
+      user_id: user.id,
+      status: 'pending'
+    };
+
     // User exists, add them to the group
     const { error: memberError } = await supabase
       .from('companion_group_members')
-      .insert({
-        group_id: groupId,
-        user_id: user.id,
-        status: 'pending'
-      });
+      .insert(memberData);
 
     if (memberError) throw memberError;
 
@@ -194,9 +181,12 @@ export const acceptGroupInvitation = async (
   userId: string
 ): Promise<boolean> => {
   try {
+    // We need to update the status manually instead of using the types
+    const updateData = { status: 'active' };
+    
     const { error } = await supabase
       .from('companion_group_members')
-      .update({ status: 'active' })
+      .update(updateData)
       .eq('group_id', groupId)
       .eq('user_id', userId);
 
@@ -213,9 +203,12 @@ export const declineGroupInvitation = async (
   userId: string
 ): Promise<boolean> => {
   try {
+    // We need to update the status manually instead of using the types
+    const updateData = { status: 'declined' };
+    
     const { error } = await supabase
       .from('companion_group_members')
-      .update({ status: 'declined' })
+      .update(updateData)
       .eq('group_id', groupId)
       .eq('user_id', userId);
 

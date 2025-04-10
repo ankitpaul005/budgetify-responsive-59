@@ -706,7 +706,7 @@ const BudgetSheet: React.FC<BudgetSheetProps> = ({
                     value={editingEntry.amount}
                     onChange={(e) => setEditingEntry({
                       ...editingEntry,
-                      amount: e.target.value
+                      amount: Number(e.target.value)
                     })}
                     className="pl-8"
                   />

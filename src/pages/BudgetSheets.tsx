@@ -49,7 +49,7 @@ import {
   Trash2, 
   Loader,
   FileSpreadsheet,
-  FilePdf,
+  FileText,
   Copy,
   BarChart
 } from "lucide-react";
@@ -57,6 +57,7 @@ import BudgetSheet from "@/components/budget/BudgetSheet";
 import { formatCurrency } from "@/utils/formatting";
 import TextToSpeech from "@/components/accessibility/TextToSpeech";
 
+// Define types for our budget sheets and entries
 interface BudgetSheetType {
   id: string;
   name: string;
@@ -75,6 +76,14 @@ interface BudgetEntryType {
   date: string;
   description: string | null;
   created_at: string;
+}
+
+// Add EXPORT to ActivityTypes if it doesn't exist
+// We'll extend the ActivityTypes enum in the activityService
+declare module "@/services/activityService" {
+  export const enum ActivityTypes {
+    EXPORT = "EXPORT"
+  }
 }
 
 const BudgetSheetsPage = () => {
@@ -314,7 +323,7 @@ const BudgetSheetsPage = () => {
       link.click();
       document.body.removeChild(link);
       
-      logActivity(user.id, ActivityTypes.EXPORT, `Exported budget sheet: ${sheet.name} as Excel`);
+      logActivity(user.id, ActivityTypes.BUDGET, `Exported budget sheet: ${sheet.name} as Excel`);
       toast.success("Budget exported to Excel");
     } catch (error) {
       console.error("Error exporting to Excel:", error);
@@ -341,7 +350,7 @@ const BudgetSheetsPage = () => {
       // For this demo, we'll just show a toast
       setTimeout(() => {
         toast.success(`Budget exported to PDF: ${sheet.name}.pdf`);
-        logActivity(user.id, ActivityTypes.EXPORT, `Exported budget sheet: ${sheet.name} as PDF`);
+        logActivity(user.id, ActivityTypes.BUDGET, `Exported budget sheet: ${sheet.name} as PDF`);
       }, 1000);
     } catch (error) {
       console.error("Error exporting to PDF:", error);
@@ -531,7 +540,7 @@ const BudgetSheetsPage = () => {
                         Export as Excel
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => exportToPDF(activeSheet)}>
-                        <FilePdf className="h-4 w-4 mr-2" />
+                        <FileText className="h-4 w-4 mr-2" />
                         Export as PDF
                       </DropdownMenuItem>
                     </DropdownMenuContent>
