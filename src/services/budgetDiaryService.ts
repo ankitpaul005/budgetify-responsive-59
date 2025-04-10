@@ -76,13 +76,16 @@ export const addBudgetDiaryMember = async (
     const budgetDiaryMembersTable = getTable('budget_diary_members');
     
     // Using type assertion to bypass type checking
-    const { data: existingMember, error: memberCheckError } = await budgetDiaryMembersTable
+    const { data: existingMemberData, error: memberCheckError } = await budgetDiaryMembersTable
       .select('id')
       .eq('budget_id', budgetId)
       .eq('user_id', user.id)
       .maybeSingle();
 
     if (memberCheckError) throw memberCheckError;
+
+    // TypeScript can't infer the correct type, so we need to check if data exists manually
+    const existingMember = existingMemberData as { id: string } | null;
 
     if (existingMember) {
       // Update existing member's access level
