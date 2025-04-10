@@ -1,88 +1,94 @@
 
-import * as React from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "light" | "dark" | "system";
+type Theme = "light" | "dark" | "system" | "classic";
 
-type ThemeContextType = {
+type ThemeProviderProps = {
+  children: React.ReactNode;
+  defaultTheme?: Theme;
+  storageKey?: string;
+};
+
+type ThemeProviderState = {
   theme: Theme;
-  toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
 };
 
-const ThemeContext = React.createContext<ThemeContextType>({
-  theme: "light",
-  toggleTheme: () => {},
-  setTheme: () => {},
-});
+const initialState: ThemeProviderState = {
+  theme: "system",
+  setTheme: () => null,
+};
 
-export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  // Initialize state with a function instead of directly accessing window/localStorage
-  const [theme, setThemeState] = React.useState<Theme>(() => {
-    if (typeof window === 'undefined') return 'light';
-    
-    // Check local storage first
-    const storedTheme = localStorage.getItem("budgetify-theme") as Theme | null;
-    
-    // If stored theme exists, use it
-    if (storedTheme) {
-      return storedTheme;
-    }
-    
-    // Otherwise default to system
-    return "system";
-  });
+const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
-  // Apply theme changes to document
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
+export function ThemeProvider({
+  children,
+  defaultTheme = "system",
+  storageKey = "budgetify-ui-theme",
+  ...props
+}: ThemeProviderProps) {
+  const [theme, setTheme] = useState<Theme>(
+    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
+  );
+
+  useEffect(() => {
     const root = window.document.documentElement;
     
-    // Handle system preference
-    const handleSystemPreference = () => {
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      if (theme === "system") {
-        prefersDark ? root.classList.add("dark") : root.classList.remove("dark");
-      }
-    };
-    
-    // Set theme based on preference
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else if (theme === "light") {
-      root.classList.remove("dark");
-    } else if (theme === "system") {
-      handleSystemPreference();
+    // Remove all existing theme classes
+    root.classList.remove("light", "dark", "system", "classic");
+
+    if (theme === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+        .matches
+        ? "dark"
+        : "light";
       
-      // Listen for system preference changes
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      mediaQuery.addEventListener("change", handleSystemPreference);
-      
-      return () => mediaQuery.removeEventListener("change", handleSystemPreference);
+      root.classList.add(systemTheme);
+      return;
     }
     
-    // Save theme preference to local storage
-    localStorage.setItem("budgetify-theme", theme);
-  }, [theme]);
+    // Apply the requested theme
+    root.classList.add(theme);
+    
+    // Apply classic theme specific styles
+    if (theme === "classic") {
+      root.style.setProperty("--background", "245 245 245"); // light beige
+      root.style.setProperty("--primary", "25 91 155"); // classic blue
+      root.style.setProperty("--primary-foreground", "255 255 255");
+      root.style.setProperty("--secondary", "191 219 254"); // light blue
+      root.style.setProperty("--accent", "36 99 235"); // bright blue
+    } else {
+      // Reset any custom properties when not using classic theme
+      root.style.removeProperty("--background");
+      root.style.removeProperty("--primary");
+      root.style.removeProperty("--primary-foreground");
+      root.style.removeProperty("--secondary");
+      root.style.removeProperty("--accent");
+    }
+    
+    // Save theme preference
+    localStorage.setItem(storageKey, theme);
+  }, [theme, storageKey]);
 
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
-  };
-  
-  const toggleTheme = () => {
-    setThemeState(prev => {
-      // Cycle through themes: light -> dark -> system -> light
-      if (prev === "light") return "dark";
-      if (prev === "dark") return "system";
-      return "light";
-    });
+  const value = {
+    theme,
+    setTheme: (theme: Theme) => {
+      setTheme(theme);
+    },
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeProviderContext.Provider {...props} value={value}>
       {children}
-    </ThemeContext.Provider>
+    </ThemeProviderContext.Provider>
   );
-};
+}
 
-export const useTheme = () => React.useContext(ThemeContext);
+export const useTheme = () => {
+  const context = useContext(ThemeProviderContext);
+
+  if (context === undefined)
+    throw new Error("useTheme must be used within a ThemeProvider");
+
+  return context;
+};

@@ -10,6 +10,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 
 import IndexPage from "./pages/Index";
 import DashboardPage from "./pages/Dashboard";
+import BudgetSheetsPage from "./pages/BudgetSheets";
 import InvestmentPage from "./pages/Investment";
 import AnalyticsPage from "./pages/Analytics";
 import ActivityPage from "./pages/Activity";
@@ -40,6 +41,7 @@ function App() {
             <Routes>
               <Route path="/" element={<IndexPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/budget-sheets" element={<BudgetSheetsPage />} />
               <Route path="/investments" element={<InvestmentPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/activity" element={<ActivityPage />} />

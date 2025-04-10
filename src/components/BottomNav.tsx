@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { BarChart3, DollarSign, ActivityIcon, Settings, Newspaper, Users } from "lucide-react";
+import { BarChart3, DollarSign, ActivityIcon, Settings, Newspaper, Users, FileSpreadsheet } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -22,9 +22,9 @@ const BottomNav = () => {
       requireAuth: true,
     },
     { 
-      name: "Investments", 
-      path: "/investments", 
-      icon: <DollarSign className="w-5 h-5" />,
+      name: "Budgets", 
+      path: "/budget-sheets", 
+      icon: <FileSpreadsheet className="w-5 h-5" />,
       requireAuth: true,
     },
     { 

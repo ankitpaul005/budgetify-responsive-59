@@ -1,123 +1,144 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.192.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+interface NewsItem {
+  id: string;
+  title: string;
+  summary: string;
+  content?: string;
+  source: string;
+  published_at: string;
+  url: string;
+  image_url?: string;
+  category: string;
+  tags?: string[];
+}
+
+// This function would fetch real news in a production environment
+// For the demo, we're generating mock data that looks realistic
+const getMockFinancialNews = (category: string, limit: number): NewsItem[] => {
+  const newsItems: NewsItem[] = [];
+  
+  const currentDate = new Date();
+  currentDate.setFullYear(2025); // Set year to 2025 as requested
+  
+  // Sources for financial news
+  const sources = ['Bloomberg', 'CNBC', 'Financial Times', 'Wall Street Journal', 'Reuters', 'The Economic Times', 'Moneycontrol'];
+  
+  // Different headlines based on categories
+  const headlines: Record<string, string[]> = {
+    markets: [
+      'Global Markets Rally as Inflation Concerns Ease',
+      'Asian Markets Lead Gains After Strong Economic Data',
+      'European Markets Close Higher Despite Banking Concerns',
+      'Markets React Positively to Central Bank Comments',
+      'Wall Street Hits Record High as Tech Stocks Surge',
+      'Market Volatility Increases Amid Global Tensions'
+    ],
+    stocks: [
+      'Tech Giants Report Better Than Expected Earnings',
+      'EV Maker Stock Jumps 15% on New Battery Technology',
+      'Healthcare Stocks Rise on Breakthrough Treatment Approval',
+      'Chip Manufacturer Shares Tumble on Supply Chain Issues',
+      'Retail Stocks Mixed After Consumer Spending Report',
+      'Green Energy Stocks Gain Following Climate Policy Announcement'
+    ],
+    crypto: [
+      'Bitcoin Surpasses $100,000 Milestone',
+      'Major Bank Launches Cryptocurrency Custody Service',
+      'Ethereum Upgrade Improves Transaction Speeds',
+      'Regulators Approve New Crypto ETF Products',
+      'Central Banks Accelerate CBDC Development Plans',
+      'Crypto Market Correction as Investors Take Profits'
+    ],
+    economy: [
+      'GDP Growth Exceeds Expectations in Q2 2025',
+      'Unemployment Rate Falls to Post-Pandemic Low',
+      'Inflation Data Shows Price Pressures Moderating',
+      'Central Bank Maintains Interest Rates, Signals Future Cuts',
+      'Consumer Confidence Index Reaches Five-Year High',
+      'Housing Market Stabilizes After Policy Adjustments'
+    ],
+    commodities: [
+      'Oil Prices Surge as Supply Concerns Intensify',
+      'Gold Reaches All-Time High on Safe Haven Demand',
+      'Rare Earth Metals Rally on Tech Manufacturing Boom',
+      'Agricultural Commodities Rise on Adverse Weather Reports',
+      'Copper Demand Increases with Green Energy Transition',
+      'Natural Gas Prices Volatile Ahead of Winter Season'
+    ]
+  };
+  
+  // Generate mock news articles
+  for (let i = 0; i < limit; i++) {
+    // Generate a date within the last week
+    const publishedDate = new Date(currentDate);
+    publishedDate.setDate(currentDate.getDate() - Math.floor(Math.random() * 7));
+    publishedDate.setHours(Math.floor(Math.random() * 24));
+    publishedDate.setMinutes(Math.floor(Math.random() * 60));
+    
+    // Select a news source
+    const source = sources[Math.floor(Math.random() * sources.length)];
+    
+    // Select a headline based on category, defaulting to markets if category doesn't exist
+    const headlinesForCategory = headlines[category] || headlines.markets;
+    const title = headlinesForCategory[Math.floor(Math.random() * headlinesForCategory.length)];
+    
+    // Generate a summary
+    const summary = `${title}. Latest updates on ${category} and insights from ${source}. Financial markets continue to respond to global economic indicators and company performance metrics.`;
+    
+    // Tags related to the category
+    const tags = [category, 'finance', 'investing', '2025-outlook'];
+    
+    // Add some variation to make each news item unique
+    const uniqueSuffix = i % 2 === 0 ? ' as investors react to recent developments' : ' in unprecedented market conditions';
+    
+    newsItems.push({
+      id: `news-${Date.now()}-${i}`,
+      title: `${title}${uniqueSuffix}`,
+      summary,
+      source,
+      published_at: publishedDate.toISOString(),
+      url: 'https://www.moneycontrol.com/',
+      image_url: `https://picsum.photos/seed/${Date.now() + i}/800/400`,
+      category,
+      tags
+    });
+  }
+  
+  return newsItems;
 };
 
-serve(async (req) => {
+const handler = async (req: Request) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { category = 'markets', limit = 10 } = await req.json();
     
-    // Get API key from environment variable
-    const NEWS_API_KEY = Deno.env.get("NEWS_API_KEY") || "";
-    
-    if (!NEWS_API_KEY) {
-      console.warn("News API key not found, using mock data");
-      return mockNewsResponse(category, limit);
-    }
-    
-    try {
-      // Using newsapi.org as an example - replace with your preferred news API
-      const url = `https://newsapi.org/v2/top-headlines?category=business&q=${category}&apiKey=${NEWS_API_KEY}`;
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`News API returned status ${response.status}`);
+    // Get mock financial news
+    const newsItems = getMockFinancialNews(category, limit);
+
+    return new Response(
+      JSON.stringify(newsItems),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
       }
-      
-      const data = await response.json();
-      
-      if (!data.articles || !Array.isArray(data.articles)) {
-        throw new Error("Unexpected data format from News API");
-      }
-      
-      // Transform the data to our format
-      const newsItems = data.articles.slice(0, limit).map((article: any) => ({
-        id: crypto.randomUUID(),
-        title: article.title,
-        summary: article.description,
-        content: article.content,
-        source: article.source?.name || "Unknown Source",
-        published_at: article.publishedAt,
-        url: article.url,
-        image_url: article.urlToImage,
-        category: category,
-        tags: [category, 'finance', 'investing'],
-      }));
-      
-      return new Response(JSON.stringify(newsItems), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    } catch (error) {
-      console.error(`Error fetching news for category ${category}:`, error);
-      return mockNewsResponse(category, limit);
-    }
+    );
   } catch (error) {
-    console.error('Error in fetch-finance-news function:', error);
-    return mockNewsResponse('markets', 10);
+    console.error("Error fetching news:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      }
+    );
   }
-});
+};
 
-// Helper to create mock news response
-function mockNewsResponse(category: string, limit: number) {
-  const newsItems = generateMockNewsData(category, limit);
-  
-  return new Response(JSON.stringify(newsItems), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
-
-// Helper to generate mock news data
-function generateMockNewsData(category: string, limit: number) {
-  const newsItems = [];
-  const now = new Date();
-  
-  const categories = ['markets', 'stocks', 'economy', 'crypto', 'commodities'];
-  const sources = ['Bloomberg', 'CNBC', 'Reuters', 'Financial Times', 'Wall Street Journal'];
-  const headlines = [
-    'Markets rally on positive economic data',
-    'Tech stocks surge as earnings beat expectations',
-    'Central bank holds interest rates steady',
-    'Bitcoin reaches new all-time high',
-    'Oil prices drop amid supply concerns',
-    'Inflation data shows cooling consumer prices',
-    'Treasury yields rise on jobs report',
-    'Global markets react to geopolitical tensions',
-    'Gold prices stabilize after volatile week',
-    'Stock futures point to higher open',
-    'Major index reaches record closing high',
-    'Financial sector gains on regulatory changes',
-    'Consumer sentiment improves in latest survey',
-    'Corporate earnings exceed analysts' expectations',
-  ];
-  
-  for (let i = 0; i < limit; i++) {
-    const publishTime = new Date(now);
-    publishTime.setHours(now.getHours() - Math.floor(Math.random() * 24));
-    
-    const randomSource = sources[Math.floor(Math.random() * sources.length)];
-    const randomHeadline = headlines[Math.floor(Math.random() * headlines.length)];
-    
-    newsItems.push({
-      id: `news-${i + 1}`,
-      title: randomHeadline,
-      summary: `Latest updates on ${category} and financial insights from ${randomSource}.`,
-      source: randomSource,
-      published_at: publishTime.toISOString(),
-      url: '#',
-      image_url: `https://picsum.photos/id/${Math.floor(Math.random() * 100)}/600/400`,
-      category: category || categories[Math.floor(Math.random() * categories.length)],
-      tags: [category, 'finance', 'investing'],
-    });
-  }
-  
-  return newsItems;
-}
+serve(handler);

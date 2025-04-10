@@ -3,13 +3,19 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { BarChart3, DollarSign, ActivityIcon, Users, Newspaper, Settings } from "lucide-react";
+import { BarChart3, DollarSign, ActivityIcon, Users, Newspaper, Settings, FileSpreadsheet } from "lucide-react";
 
 const navLinks = [
   { 
     title: "Dashboard", 
     href: "/dashboard", 
     icon: <BarChart3 className="h-4 w-4 mr-1" />, 
+    requireAuth: true 
+  },
+  { 
+    title: "Budget Sheets", 
+    href: "/budget-sheets", 
+    icon: <FileSpreadsheet className="h-4 w-4 mr-1" />, 
     requireAuth: true 
   },
   { 
