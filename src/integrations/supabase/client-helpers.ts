@@ -5,10 +5,14 @@ import { supabase } from "./client";
  * Helper function to access tables without TypeScript errors.
  * This is useful for accessing tables that exist in the database but 
  * aren't properly typed in the generated types file.
+ * 
+ * @param tableName The name of the table to access
+ * @returns A PostgrestQueryBuilder instance for the specified table
  */
 export const getTable = (tableName: string) => {
-  // @ts-ignore - We need to bypass TypeScript's type checking here
-  return supabase.from(tableName);
+  // Using type assertion to bypass TypeScript's type checking
+  // This is necessary for tables that exist in the database but aren't in the generated types
+  return supabase.from(tableName as any);
 };
 
 /**

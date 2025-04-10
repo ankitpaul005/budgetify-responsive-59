@@ -72,8 +72,10 @@ export const addBudgetDiaryMember = async (
     }
 
     // Check if the user is already a member
+    // Using any to bypass excessive type instantiation
     const budgetDiaryMembersTable = getTable('budget_diary_members');
     
+    // Using type assertion to bypass type checking
     const { data: existingMember, error: memberCheckError } = await budgetDiaryMembersTable
       .select('id')
       .eq('budget_id', budgetId)

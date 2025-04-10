@@ -89,6 +89,7 @@ interface BudgetSheetType {
   is_default: boolean;
   created_at: string;
   updated_at: string;
+  user_id: string;
 }
 
 interface BudgetEntryType {
